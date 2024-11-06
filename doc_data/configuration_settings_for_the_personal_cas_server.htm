@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for the Personal CAS Server</title>
+    </head>
+    <body>
+        <h1 id="140342937599472configuration-settings-for-the-personal-cas-server">Configuration Settings for the Personal CAS Server</h1>
+<h2 id="140342937599472overview">Overview</h2>
+<p>This document describes the customizations that can be made by the Kubernetes
+administrator for deploying the Personal CAS Server.</p>
+<h2 id="140342937599472installation">Installation</h2>
+<p>The SAS Viya Platform provides example files for many common customizations. Read the descriptions
+for the example files in the following list. If you want to use an example file
+to simplify customizing your deployment, copy the file to your
+<code>$deploy/site-config</code> directory.</p>
+<p>Each file has information about its content. The variables in the file are set
+off by curly braces and spaces, such as {{ AMOUNT-OF-STORAGE }}. Replace the
+entire variable string, including the braces, with the value you want to use.</p>
+<p>After you edit a file, add a reference to it in the transformers block of the
+base <code>kustomization.yaml</code> file.</p>
+<p>Here is an example using the host path transformer, saved to <code>$deploy/site-config/sas-programming-environment/personal-cas-server</code>:</p>
+<pre><code>```yaml
+transformers:
+...
+- /site-config/sas-programming-environment/personal-cas-server/personal-cas-modify-host-cache.yaml
+...
+
+```
+</code></pre>
+<h2 id="140342937599472examples">Examples</h2>
+<p>The example files are located at <code>$deploy/sas-bases/examples/sas-programming-environment/personal-cas-server</code>.
+The following is a list of each example file.</p>
+<ul>
+<li>
+<p>enable Kerberos support for the Personal CAS server
+  (<code>personal-cas-enable-kerberos.yaml</code>)</p>
+</li>
+<li>
+<p>modify the CAS_DISK_CACHE to be a host path for the Personal CAS server
+  (<code>personal-cas-modify-host-cache.yaml</code>)</p>
+</li>
+</ul>
+<h2 id="140342937599472additional-resources">Additional Resources</h2>
+<p>For more information about deployment and using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

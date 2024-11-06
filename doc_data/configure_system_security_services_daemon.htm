@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure System Security Services Daemon</title>
+    </head>
+    <body>
+        <h1 id="140342937970672configure-system-security-services-daemon">Configure System Security Services Daemon</h1>
+<h2 id="140342937970672overview">Overview</h2>
+<p>System Security Services Daemon (SSSD) is necessary when using SAS/ACCESS
+Interface to Hadoop with a Kerberos-protected Hadoop deployment.</p>
+<h2 id="140342937970672enable-the-sssd-container">Enable the SSSD Container</h2>
+<ol>
+<li>
+<p>Add <code>sas-bases/overlays/kerberos/sssd/add-sssd-container-transformer.yaml</code> to
+the transformers block of the base kustomization.yaml file
+(<code>$deploy/kustomization.yaml</code>).</p>
+<pre><code>**Important:** This line must come before any network transformers
+</code></pre>
+<p>(transformers that start with &ldquo;- sas-bases/overlays/network/&rdquo;) and the required
+transformer (&ldquo;- sas-bases/overlays/required/transformers.yaml&rdquo;). Note that your
+configuration may not have network transformers if security is not configured.
+This line must also be placed after any Kerberos transformers (transformers
+starting with &ldquo;- sas-bases/overlays/kerberos/sas-servers&rdquo;).</p>
+<pre><code>```yaml
+    transformers:
+    ...
+    # Place after any sas-bases/overlays/kerberos lines
+    - sas-bases/overlays/kerberos/sssd/add-sssd-container-transformer.yaml
+    # Place before any sas-bases/overlays/network lines and before
+    # sas-bases/overlays/required/transformers.yaml
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=
+dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm&amp;locale=en">SAS Viya Platform: Deployment
+Guide</a>.</p>
+</li>
+</ol>
+<h2 id="140342937970672add-a-custom-configuration-for-sssd">Add a Custom Configuration for SSSD</h2>
+<p>Use these steps to provide a custom SSSD configuration to handle user
+authorization in your environment.</p>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/kerberos/sssd</code>
+directory to the <code>$deploy/site-config/kerberos/sssd</code> directory. Create
+the target directory, if it does not already exist.</p>
+</li>
+<li>
+<p>Copy your customer sssd.conf configuration file to
+<code>$deploy/site-config/kerberos/sssd/sssd.conf</code>.</p>
+</li>
+<li>
+<p>Make the following changes to the base kustomization.yaml file in the $deploy
+directory.</p>
+<pre><code>- Add the following to the generators block.
+
+```yaml
+generators:
+...
+- site-config/kerberos/sssd/secrets.yaml
+```
+- Add a reference to `sas-bases/overlays/kerberos/sssd/add-sssd-configmap-transformer.yaml`
+to the transformers block. The new line must come
+</code></pre>
+<p>after  <code>sas-bases/overlays/kerberos/sssd/add-sssd-container-transformer.yaml</code>.</p>
+<pre><code>```yaml
+transformers:
+...
+- sas-bases/overlays/kerberos/sssd/add-sssd-configmap-transformer.yaml
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=
+dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm&amp;locale=en">SAS Viya Platform: Deployment
+Guide</a>.</p>
+</li>
+</ol>
+    </body>
+</html>

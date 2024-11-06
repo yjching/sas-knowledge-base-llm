@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Lifecycle Operation: Deploy</title>
+    </head>
+    <body>
+        <h1 id="140342937457472lifecycle-operation-deploy">Lifecycle Operation: Deploy</h1>
+<h2 id="140342937457472deprecation-warning">Deprecation Warning</h2>
+<p>As of both the Stable and Long-Term Support releases of 2023.03, the deploy lifecycle operation is deprecated. It will be removed at Stable 2023.10 and Long-Term Support 2024.03. Use the <code>sas-orchestration deploy</code> command instead of the deploy lifecycle operation. For more information about the <code>sas-orchestration deploy</code> command, see <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm#p18cfbdx5dzwoan1qsvtitxg2nir">Deployment Using the sas-orchestration Command</a>.</p>
+<h2 id="140342937457472overview">Overview</h2>
+<p>The <code>deploy</code> lifecycle operation runs the recommended sequence of
+<code>kubectl apply</code> commands necessary to deploy the software.</p>
+<p>For general lifecycle operation execution details, please see the README file at
+<code>$deploy/sas-bases/examples/kubernetes-tools/README.md</code> (for Markdown) or
+<code>$deploy/sas-bases/docs/using_kubernetes_tools_from_the_sas-orchestration_image.htm</code> (for HTML).</p>
+<p><strong>Note:</strong> <code>$deploy</code> refers to the directory containing the deployment assets.</p>
+<p>The following example assumes:</p>
+<ul>
+<li>The deployment assets for the order have been downloaded to <code>$deploy</code>. To download the deployment assets
+  for an order from <code>my.sas.com</code>, go to <a href="http://my.sas.com">http://my.sas.com</a>, log in, find your order
+  and select <code>Download Deployment Assets</code>. Extract the downloaded tarball to <code>$deploy</code>.</li>
+<li>A <code>site.yaml</code> manifest file exists in <code>$deploy</code>.
+  See the <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>
+  for instructions on how to create the site.yaml manifest.</li>
+<li>A kubeconfig file called <code>config</code> exists in <code>/home/user/kubernetes</code>. The kubeconfig file defines the cluster
+  the lifecycle operations will connect to.</li>
+<li>The orchestration image has been pulled and has the local tag &lsquo;sas-orchestration&rsquo;</li>
+<li>The <code>$deploy</code> directory is the current working directory.
+  <code>cd</code> to $deploy and use <code>$(pwd)</code> to mount the current directory into the container.</li>
+<li>The software has been deployed into the namespace <code>{{ NAME-OF-NAMESPACE }}</code></li>
+</ul>
+<h2 id="140342937457472example">Example</h2>
+<pre class="highlight"><code>cd $deploy
+docker run --rm \
+  -v "$(pwd):/cwd" \
+  -v /home/user/kubernetes:/kubernetes \
+  -e "KUBECONFIG=/kubernetes/config" \
+  sas-orchestration \
+  lifecycle run \
+    --operation deploy \
+    --deployment-dir /cwd \
+    -- \
+    --manifest /cwd/site.yaml \
+    --deploymentDir /cwd \
+    --namespace {{ NAME-OF-NAMESPACE }}</code></pre>
+
+<p><strong>Note:</strong> The <code>--deploymentDir</code> parameter on the <code>deploy</code> lifecycle operation
+is unused.</p>
+<p><strong>Note:</strong> To see the commands that would be executed from the operation without
+making any changes to the cluster, add <code>-e "DISABLE_APPLY=true"</code> to the container.</p>
+    </body>
+</html>

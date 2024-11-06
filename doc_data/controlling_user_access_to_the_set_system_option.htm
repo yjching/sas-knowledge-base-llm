@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Controlling User Access to the SET= System Option</title>
+    </head>
+    <body>
+        <h1 id="140342945666960controlling-user-access-to-the-set-system-option">Controlling User Access to the SET= System Option</h1>
+<h2 id="140342945666960overview">Overview</h2>
+<p>This document describes the customizations that can be made by the Kubernetes
+administrator for controlling the access a user has to change environment
+variables by way of the SET= System Option.</p>
+<p>The SAS language includes the SET= System Option, which allows the user to
+define or change the value of an environment variable in the session that
+the user is working in. However, an administrator might want to limit the
+ability of the user to change certain environment variables.  The steps
+described in this README provide the administrator with the ability to
+block specific variables from being set by the user.</p>
+<h2 id="140342945666960installation">Installation</h2>
+<p>The list of environment variables that should be blocked for users to change
+can be modified by using the transformer in the example file located at
+<code>$deploy/sas-bases/examples/sas-programming-environment/options-set</code>.</p>
+<ol>
+<li>
+<p>Copy the
+<code>$deploy/sas-bases/examples/sas-programming-environment/options-set/deny-options-set-variables.yaml</code>
+file to the site-config directory.</p>
+</li>
+<li>
+<p>To add variables that users should be prevented from changing, replace the
+{{ OPTIONS-SET-DENY-LIST }} variable in the copied file with the list of
+environment variables to be protected.
+Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+patch : |-
+  - op: add
+    path: /data/SAS_OPTIONS_SET_DENY_LIST
+    value: "VAR1 VAR2 VAR3"
+...</code></pre>
+
+</li>
+<li>
+<p>After you edit the file, add a reference to it in the transformers block of
+the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).  Here is an
+example assuming the file has been saved to
+ <code>$deploy/site-config/sas-programming-environment/options-set</code>:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-programming-environment/options-set/deny-options-set-variables.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342945666960additional-resources">Additional Resources</h2>
+<p>For more information about deployment and using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

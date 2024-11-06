@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuring SAS Compute Server to Use a Personal CAS Server with GPU</title>
+    </head>
+    <body>
+        <h1 id="140342938568352configuring-sas-compute-server-to-use-a-personal-cas-server-with-gpu">Configuring SAS Compute Server to Use a Personal CAS Server with GPU</h1>
+<h2 id="140342938568352overview">Overview</h2>
+<p>The SAS Compute server provides the ability to execute SAS code that
+can drive requests into the shared CAS server in the cluster.
+For development purposes in applications such as SAS Studio,
+you might need to allow data scientists the ability to work with a CAS server that is local to their SAS Compute session.</p>
+<p>This README file describes how to customize your SAS Viya platform deployment to allow
+SAS Compute server users access to a personal CAS server with GPU.
+This personal CAS server uses symmetric multiprocessing (SMP) architecture.</p>
+<h2 id="140342938568352installation">Installation</h2>
+<p>Enable the ability for the pod where the SAS Compute
+server is running to contain a personal CAS server (with GPU) instance. This CAS server
+starts when the SAS Compute server is started, and exists for the life of
+the SAS Compute server. Code executing in the SAS Compute session can then be
+directed to this personal CAS server (with GPU).</p>
+<p>Installing this overlay is the same as installing the overlay that adds Personal CAS Server (without GPU).
+The only difference is that the overlay name is different.</p>
+<h3 id="140342938568352add-gpu-to-an-existing-personal-cas-server">Add GPU to an Existing Personal CAS Server</h3>
+<p>If you want to add GPU to an existing Personal CAS Server, perform these steps:</p>
+<ol>
+<li>
+<p>Follow the instructions in the README to remove the Personal CAS Server. The README for Personal CAS Server (without GPU) is located at <code>$deploy/sas-bases/examples/sas-programming-environment/personal-cas-server/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/doc/configuring_sas_compute_server_to_use_a_personal_cas_server.htm</code> (for HTML format).</p>
+</li>
+<li>
+<p>Use this overlay (and these instructions) to add Personal CAS Server with GPU.</p>
+</li>
+</ol>
+<p><strong>Note:</strong> Only one Personal CAS Server may be present in SAS Compute Server</p>
+<h3 id="140342938568352enable-the-personal-cas-server-in-the-sas-compute-server">Enable the Personal CAS Server in the SAS Compute Server</h3>
+<p>SAS has provided an overlay to enable the personal CAS server in your environment.</p>
+<p>To use the overlay:</p>
+<ol>
+<li>
+<p>Add a reference to the <code>sas-programming-environment/personal-cas-server-with-gpu</code> overlay to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/sas-programming-environment/personal-cas-server-with-gpu
+- sas-bases/overlays/required/transformers.yaml
+...</code></pre>
+
+<p><strong>Note:</strong> The reference to the <code>sas-programming-environment/personal-cas-server-with-gpu</code> overlay must come before the required transformers.yaml, as seen in the example above.</p>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342938568352disabling-the-personal-cas-server-in-the-sas-compute-server">Disabling the Personal CAS Server in the SAS Compute Server</h3>
+<p>To disable the personal CAS Server:</p>
+<ol>
+<li>
+<p>Remove <code>sas-bases/overlays/sas-programming-environment/personal-cas-server-with-gpu</code>
+from the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+    </body>
+</html>

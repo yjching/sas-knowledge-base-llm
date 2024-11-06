@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Adding Classes to Java Security Policy File Used by SAS Programming Environment</title>
+    </head>
+    <body>
+        <h1 id="140342938777728adding-classes-to-java-security-policy-file-used-by-sas-programming-environment">Adding Classes to Java Security Policy File Used by SAS Programming Environment</h1>
+<h2 id="140342938777728overview">Overview</h2>
+<p>This document describes the customizations that can be made by the Kubernetes
+administrator for managing the Java security policy file that is generated for
+the SAS Programming Environment.</p>
+<p>By default the SAS Programming Environment generates a Java security policy
+file to prevent SAS programmers from executing Java code directly from SAS code
+that would be deemed unsafe by the administrator. This README describes the
+customizations that can be made by the Kubernetes administrator for managing
+the Java security policy file that is generated for the SAS Programming
+Environment.</p>
+<p>If a class is determined acceptable by the Kubernetes administrator, the
+following steps allow that class to be added.</p>
+<h2 id="140342938777728installation">Installation</h2>
+<p>The default behavior generates a Java security policy file similar to</p>
+<pre class="highlight"><code class="language-text">grant {
+permission java.lang.RuntimePermission "*";
+permission java.io.FilePermission "&lt;&lt;ALL FILES&gt;&gt;", "read, write, delete";
+permission java.util.PropertyPermission "*", "read, write";
+permission java.net.SocketPermission "*", "connect,accept,listen";
+permission java.io.FilePermission "com.sas.analytics.datamining.servertier.SASRScriptExec", "exec";
+permission java.io.FilePermission "com.sas.analytics.datamining.servertier.SASPythonExec", "exec";
+};</code></pre>
+
+<p>The Java security policy file can be modified by using the
+add-allowed-java-class.yaml file.</p>
+<ol>
+<li>
+<p>Copy the
+<code>$deploy/sas-bases/examples/sas-programming-environment/java-security-policy/add-allowed-java-class.yaml</code>
+file to the site-config directory.</p>
+</li>
+<li>
+<p>To add classes with an <code>exec</code> permission to this generated policy file,
+replace the following in the copied file.</p>
+<ul>
+<li>Replace {{ NAME }} with an unique name for the class.   This is for
+ internal identification.</li>
+<li>Replace {{ CLASS-NAME}} with the Java class name that is to be allowed.</li>
+</ul>
+<p>For example,</p>
+<pre class="highlight"><code class="language-yaml">...
+patch: |-
+  - op: add
+    path: /data/SAS_JAVA_POLICY_ALLOW_TESTCLASS
+    value: "my.org.test.testclass"
+...</code></pre>
+
+</li>
+<li>
+<p>After you edit the file, add a reference to it in the transformers block of
+the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example assuming the file has been saved
+ to <code>$deploy/site-config/sas-programming-environment/java-security-policy</code>:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- /site-config/sas-programming-environment/java-security-policy/add-allowed-java-class.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938777728additional-resources">Additional Resources</h2>
+<p>For more information about deployment and using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

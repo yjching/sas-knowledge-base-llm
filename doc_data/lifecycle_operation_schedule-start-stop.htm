@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Lifecycle Operation: schedule-start-stop</title>
+    </head>
+    <body>
+        <h1 id="140342937305536lifecycle-operation-schedule-start-stop">Lifecycle Operation: schedule-start-stop</h1>
+<p>The start-all and stop-all Cronjobs can be run on a schedule using the example file in <code>$deploy/sas-bases/examples/kubernetes-tools/lifecycle-operations/schedule-start-stop</code>. Copy the &lsquo;schedule-start-stop.yaml&rsquo; into the site-config directory and revise it to insert a schedule for start-all and another schedule for stop-all. Add a reference to the file to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+site-config/kubernetes-tools/lifecycle-operations/schedule-start-stop/schedule-start-stop.yaml</code></pre>
+
+<p><strong>Note:</strong> This file should be included <em>after</em> the line</p>
+<pre class="highlight"><code class="language-yaml">- sas-bases/overlays/required/transformers.yaml</code></pre>
+    </body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuring SAS Launcher Service to Disable the Resource Exhaustion Protection</title>
+    </head>
+    <body>
+        <h1 id="140342937971872configuring-sas-launcher-service-to-disable-the-resource-exhaustion-protection">Configuring SAS Launcher Service to Disable the Resource Exhaustion Protection</h1>
+<p>This README describes the steps necessary to disable your SAS Viya platform deployment SAS Launcher Resource Exhaustion protection.
+Disabling this feature allows users to have no limit to the number of processes they can launch through the SAS Launcher API.</p>
+<h2 id="140342937971872installation">Installation</h2>
+<ol>
+<li>To disable SAS Launcher Resource Exhaustion protection, add sas-bases/overlays/sas-launcher/launcher-disable-user-process-limits.yaml
+to the transformers block of the base kustomization.yaml file in the &lsquo;$deploy&rsquo; directory. Here is an example:</li>
+</ol>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/sas-launcher/launcher-disable-user-process-limits.yaml</code></pre>
+
+<ol>
+<li>When the reference is added to the base kustomization.yaml, use the deployment commands described in <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a> to apply the new settings.</li>
+</ol>
+    </body>
+</html>

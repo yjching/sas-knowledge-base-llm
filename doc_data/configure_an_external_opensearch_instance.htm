@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure an External OpenSearch Instance</title>
+    </head>
+    <body>
+        <h1 id="140342937846400configure-an-external-opensearch-instance">Configure an External OpenSearch Instance</h1>
+<p>This README file describes the files used to configure the SAS Viya platform deployment to use an externally managed instance of OpenSearch.</p>
+<h2 id="140342937846400prerequisites">Prerequisites</h2>
+<p>Before deploying the SAS Viya platform, make sure you have the following prerequisites:</p>
+<ul>
+<li>
+<p>An external instance of OpenSearch 2.5 </p>
+</li>
+<li>
+<p>The following OpenSearch plug-ins:</p>
+<ul>
+<li>
+<p>analysis-icu</p>
+</li>
+<li>
+<p>analysis-kuromoji</p>
+</li>
+<li>
+<p>analysis-nori</p>
+</li>
+<li>
+<p>analysis-phonetic</p>
+</li>
+<li>
+<p>analysis-smartcn</p>
+</li>
+<li>
+<p>analysis-stempel</p>
+</li>
+<li>
+<p>mapper-murmur3</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>If you are deploying SAS Visual Investigator, the external instance of OpenSearch requires a specific configuration of OpenSearch and its security plugin. For more information, see the README file at <code>$deploy/sas-bases/examples/configure-elasticsearch/external/config/README.md</code> (for Markdown format) or at <code>$deploy/sas-bases/docs/external_opensearch_configuration_requirements_for_sas_visual_investigator.htm</code> (for HTML format).</p>
+<h2 id="140342937846400instructions">Instructions</h2>
+<p>In order to use an external OpenSearch instance, you must customize your deployment to point to the required resources and transformers.</p>
+<ol>
+<li>
+<p>If you are deploying in Front-door or Full-stack TLS modes, copy the file <code>$deploy/sas-bases/examples/configure-elasticsearch/external/client-config-tls.yaml</code> into your <code>$deploy/site-config/external-opensearch/</code> directory. Create the <code>$deploy/site-config/external-opensearch/</code> directory if it does not already exist.</p>
+<p>If you are deploying in No TLS mode, copy the file <code>$deploy/sas-bases/examples/configure-elasticsearch/external/client-config-no-tls.yaml</code> into your <code>$deploy/site-config/external-opensearch/</code> directory. Create the <code>$deploy/site-config/external-opensearch/</code> directory if it does not already exist.</p>
+<p>Adjust the values in your copied file following the in-line comments.</p>
+</li>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/configure-elasticsearch/external/secret.yaml</code> into your <code>$deploy/site-config/external-opensearch/</code> directory . Adjust the values in your copied file following the in-line comments.</p>
+</li>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/configure-elasticsearch/external/external-opensearch-transformer.yaml</code> into your <code>$deploy/site-config/external-opensearch/</code> directory .</p>
+</li>
+<li>
+<p>Go to the base kustomization file (<code>$deploy/kustomization.yaml</code>). In the transformers block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- site-config/external-opensearch/external-opensearch-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>If you are deploying in Full-stack TLS or Front-door TLS mode, add the following content in the resources block of the base kustomization file. Add the resources block if it does not already exist.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/external-opensearch/client-config-tls.yaml
+- site-config/external-opensearch/secret.yaml
+...</code></pre>
+
+<p>If you are deploying in Front-door TLS mode and the external instance of OpenSearch is not in the same cluster, add the following content in the resources block of the base kustomization file. Add the resources block if it does not already exist.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/external-opensearch/client-config-tls.yaml
+- site-config/external-opensearch/secret.yaml
+...</code></pre>
+
+<p>If you are deploying in Front-door TLS mode and the external instance of OpenSearch is in the same cluster, add the following content in the resources block of the base kustomization file. Add the resources block if it does not already exist.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/external-opensearch/client-config-no-tls.yaml
+- site-config/external-opensearch/secret.yaml
+...</code></pre>
+
+<p>If you are not using TLS, add the following content in the resources block of the base kustomization file, including adding the block if it doesn&rsquo;t already exist.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/external-opensearch/client-config-no-tls.yaml
+- site-config/external-opensearch/secret.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937846400recommendations">Recommendations</h2>
+<p>To ensure the optimal functionality of index creation within the SAS Viya platform, ensure that the action section inside the config/opensearch.yml file has the auto_create_index set to <code>-sand__*,-viya_catalog__*,+*</code>.</p>
+    </body>
+</html>

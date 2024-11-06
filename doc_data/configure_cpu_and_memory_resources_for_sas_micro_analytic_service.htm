@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure CPU and Memory Resources for SAS Micro Analytic Service</title>
+    </head>
+    <body>
+        <h1 id="140342937849760configure-cpu-and-memory-resources-for-sas-micro-analytic-service">Configure CPU and Memory Resources for SAS Micro Analytic Service</h1>
+<h2 id="140342937849760overview">Overview</h2>
+<p>By default, SAS Micro Analytic Service is deployed with 750 MB of memory and 250m CPU.</p>
+<p>If your SAS Micro Analytic Service deployment requires different resources, you can use the resources-transformer.yaml file in the <code>$deploy/sas-bases/examples/sas-microanalytic-score/resources</code> directory to configure different values.</p>
+<h2 id="140342937849760prerequisites">Prerequisites</h2>
+<p>Determine the minimum and maximum value of memory and CPU required for your deployment. The values depend on available resources in the cluster and your desired throughput.</p>
+<h2 id="140342937849760installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the files in <code>$deploy/sas-bases/examples/sas-microanalytic-score/resources</code> to the <code>$deploy/site-config/sas-microanalytic-score/resources</code> directory. Create destination directory if it does not exist.</p>
+<p><strong>Note:</strong> If the destination directory already exists, <a href="#140342937849760verify-overlay-for-the-resources">verify that the overlay</a> has been applied. 
+ You do not need to take any further actions, unless you want to change the CPU and memory parameters to different values.</p>
+</li>
+<li>
+<p>Modify the resources-transformer.yaml in <code>$deploy/site-config/sas-microanalytic-score/resources</code> to specify your resource settings. For more information about Kubernetes resources, see <a href="#140342937849760additional-resources">Additional Resources</a>.</p>
+<ul>
+<li>Replace {{ MEMORY-REQUIRED }} with the minimum amount of memory required for SAS Micro Analytic Service.</li>
+<li>Replace {{ MEMORY-LIMIT }} with the maximum amount of memory that can be claimed for SAS Micro Analytic Service.</li>
+<li>Replace {{ CPU-REQUIRED }} with the minimum number of cores required for SAS Micro Analytic Service.</li>
+<li>Replace {{ CPU-LIMIT }} with the maximum number of cores that can be claimed for SAS Micro Analytic Service.</li>
+</ul>
+<p><strong>Note:</strong> Kubernetes uses units of measurement that are different from the standard. For memory, use Gi for gigabytes and Ti for terabytes. For cores, Kubernetes uses millicores as its standard, and there are 1000 millicores to a core. Therefore, if you want to use 4 cores, use 4000m as your value. 500m is equivalent to half a core.</p>
+</li>
+<li>
+<p>In the base kustomization.yaml in $deploy directory, add site-config/sas-microanalytic-score/resources/resources-transformer.yaml to the transformers block.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- site-config/sas-microanalytic-score/resources/resources-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>Complete the deployment steps to apply the new settings. See <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a> in <em>SAS Viya Platform: Deployment Guide</em>.</p>
+<p><strong>Note:</strong> This overlay can be applied during the initial deployment of the SAS Viya platform or after the deployment of the SAS Viya platform.</p>
+<ul>
+<li>If you are applying the overlay during the initial deployment of the SAS Viya platform, complete all the tasks in the README files that you want to use, then run <code>kustomize build</code> to create and apply the manifests. </li>
+<li>If the overlay is applied after the initial deployment of the SAS Viya platform, run <code>kustomize build</code> to create and apply the manifests.  </li>
+</ul>
+</li>
+</ol>
+<h2 id="140342937849760verify-overlay-for-the-resources">Verify Overlay for the Resources</h2>
+<ol>
+<li>
+<p>Run the following command to verify whether the overlay has been applied:</p>
+<pre class="highlight"><code class="language-sh">kubectl describe pod  &lt;sas-microanalyticscore-pod-name&gt; -n &lt;name-of-namespace&gt;</code></pre>
+
+</li>
+<li>
+<p>Verify that the output contains the desired CPU and memory values that you configured:</p>
+<pre class="highlight"><code class="language-yaml">Limits:
+  cpu:     4
+  memory:  2Gi
+Requests:
+  cpu:      250m
+  memory:   750M</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937849760additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a></li>
+<li><a href="http://documentation.sas.com/?cdcId=mascdc&amp;cdcVersion=default&amp;docsetId=masag&amp;docsetTarget=n0xhk2rkiy2ku1n163otwgddvxra.htm">Configuring SAS Micro Analytic Service Resources</a> in <em>SAS Micro Analytic Service: Programming and Administration Guide</em></li>
+<li><a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits">Resource Requests and Limits for Pods in Kubernetes</a></li>
+</ul>
+    </body>
+</html>

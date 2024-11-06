@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Using the Inventory Collector</title>
+    </head>
+    <body>
+        <h1 id="140342938415168using-the-inventory-collector">Using the Inventory Collector</h1>
+<h2 id="140342938415168overview">Overview</h2>
+<p>The Inventory Collector is a CronJob that contains two Jobs.
+They are available to run after deployment is fully up and running.
+The first Job creates inventory tables and the second Job creates an inventory
+comparison table. Tables are created in the protected SystemData caslib
+and used by SAS Inventory Reports located in the
+<code>Content/Products/SAS Environment Manager/Dashboard Items</code> folder.
+Access to the tables and reports are restricted to users that are
+members of the SAS Administrators group.</p>
+<p>For more information, see <a href="https://go.documentation.sas.com/doc/en/sasadmincdc/v_032/calmigration3x/p0s8n6d5si7oqun1ixkvuw10mzcx.htm#n19zyr5az9t61xn1wvid4nidbs09">SAS Help Center Documentation</a></p>
+<h2 id="140342938415168usage">Usage</h2>
+<h2 id="140342938415168inventory-collector-job">Inventory Collector Job</h2>
+<p>The Inventory Collector Job must be run before the Inventory Comparison Job. It
+collects an inventory of artifacts created by various SAS Viya platform services. It also
+creates the SASINVENTORY4 and SASVIYAINVENTORY4_CASSVRDETAILS CAS tables in the
+SystemData caslib that are referenced by the SAS Viya 4 Inventory Report.</p>
+<h3 id="140342938415168run-inventory-collection-on-all-tenants">Run Inventory Collection on All Tenants</h3>
+<pre class="highlight"><code class="language-bash">kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-collector-job</code></pre>
+
+<h3 id="140342938415168run-inventory-collection-on-a-single-tenant">Run Inventory Collection on a Single Tenant</h3>
+<p>Set the TENANT environment variable to “provider”, then create and run the Job. Here
+is an example:</p>
+<pre class="highlight"><code class="language-bash">kubectl set env cronjob/sas-inventory-collector TENANT=acme
+kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-collector-job</code></pre>
+
+<h3 id="140342938415168run-inventory-collection-on-the-provider-tenant">Run Inventory Collection on the Provider Tenant</h3>
+<p>Set the TENANT environment variable to &ldquo;provider&rdquo;, then create and run the Job. Here
+is an example:</p>
+<pre class="highlight"><code class="language-bash">kubectl set env cronjob/sas-inventory-collector TENANT=provider
+kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-collector-job</code></pre>
+
+<h3 id="140342938415168remove-the-tenant-environment-variable">Remove the TENANT Environment Variable</h3>
+<pre class="highlight"><code class="language-bash">kubectl set env cronjob/sas-inventory-collector TENANT-</code></pre>
+
+<h3 id="140342938415168schedule-an-inventory">Schedule an Inventory</h3>
+<p>The sas-inventory-collector CronJob is disabled by default.
+To enable it, run this command:</p>
+<pre class="highlight"><code class="language-bash">kubectl patch cronjob sas-inventory-collector -p '{"spec":{"suspend": false}}'</code></pre>
+
+<h3 id="140342938415168schedule-an-inventory-in-single-tenant-environments">Schedule an Inventory in Single-Tenant Environments</h3>
+<p>A schedule can be set in the CronJob Kubernetes resource by using the kubectl patch
+command. For example, to run once a day at midnight, run this command:</p>
+<pre class="highlight"><code class="language-bash">kubectl patch cronjob sas-inventory-collector -p '{"spec":{"schedule": "0 0 * * *"}}'</code></pre>
+
+<p>Scheduling the CronJob in the cluster is permitted for single-tenant environments.</p>
+<h3 id="140342938415168schedule-an-inventory-in-multi-tenancy-environments">Schedule an Inventory in Multi-Tenancy Environments</h3>
+<p>Multi-tenant environments should run CronJobs outside the cluster on a machine where
+the admin can run kubectl commands. This approach allows multi-tenant Jobs to run
+independently and simultaneously. Here is an example that runs the <strong>provider</strong>
+tenant at midnight and the <strong>acme</strong> tenant five minutes later:</p>
+<p>Add a crontab to a server with access to kubectl and the cluster namespace
+<pre class="highlight"><code class="language-bash">$ crontab -e</code></pre>
+Crontab entries
+<pre class="highlight"><code class="language-bash">0 0 * * * /PATH_TO/inventory-collector.sh provider
+5 0 * * * /PATH_TO/inventory-collector.sh acme</code></pre></p>
+<h2 id="140342938415168sample-inventory-collectorsh">Sample inventory-collector.sh</h2>
+<p>This sample script can be called by a crontab entry in a server running outside the cluster.
+<pre class="highlight"><code class="language-bash">#!/bin/bash
+TENANT=$1
+export KUBECONFIG=/PATH_TO/kubeconfig
+# unset the COMPARISON environment variable if set
+kubectl set env cronjob/sas-inventory-collector COMPARISON-
+# set the TENANT= environment variable
+/PATH_TO/kubectl set env cronjob/sas-inventory-collector TENANT=$TENANT
+# delete any previously run job
+/PATH_TO/kubectl delete job sas-inventory-collector-$TENANT
+# run the job
+/PATH_TO/kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-collector-$TENANT</code></pre></p>
+<hr />
+<h2 id="140342938415168inventory-comparison-job">Inventory Comparison Job</h2>
+<p>The inventory comparison job compares two inventory tables. The resulting table is used by the SAS Viya Inventory Comparison report.</p>
+<h3 id="140342938415168run-inventory-comparison-in-an-non-mt-environment">Run Inventory Comparison in an non-MT environment</h3>
+<ul>
+<li>set the COMPARISON environment variable to &ldquo;true&rdquo;</li>
+</ul>
+<pre class="highlight"><code class="language-bash">kubectl set env cronjob/sas-inventory-collector COMPARISON=true
+kubectl delete job sas-inventory-comparison-job
+kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-comparison-job
+kubectl set env cronjob/sas-inventory-collector COMPARISON-</code></pre>
+
+<h3 id="140342938415168run-inventory-comparison-on-the-provider-tenant-in-an-mt-environment">Run Inventory Comparison on the Provider Tenant in an MT environment</h3>
+<ul>
+<li>set the COMPARISON environment variable to &ldquo;true&rdquo;</li>
+<li>set the TENANT environment variable to &ldquo;provider&rdquo;</li>
+</ul>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-bash">kubectl set env cronjob/sas-inventory-collector TENANT=provider
+kubectl set env cronjob/sas-inventory-collector COMPARISON=true
+kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-comparison-job
+kubectl set env cronjob/sas-inventory-collector COMPARISON-</code></pre>
+
+<h3 id="140342938415168run-inventory-comparison-for-a-single-tenant-in-a-mt-environment">Run Inventory Comparison for a single tenant in a MT environment</h3>
+<ul>
+<li>set the COMPARISON environment variable to &ldquo;true&rdquo;</li>
+<li>set the TENANT environment variable to the &ldquo;tenant-name&rdquo;</li>
+</ul>
+<pre class="highlight"><code class="language-bash">kubectl set env cronjob/sas-inventory-collector TENANT=&lt;tenant-name&gt;
+kubectl set env cronjob/sas-inventory-collector COMPARISON=true
+kubectl delete job sas-inventory-comparison-job
+kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-comparison-job
+kubectl set env cronjob/sas-inventory-collector COMPARISON-</code></pre>
+
+<h3 id="140342938415168comparing-viya-3-to-viya-4-after-a-migration">Comparing Viya 3 to Viya 4+ after a migration</h3>
+<p>Inventory collection or scanning as it is referred to in SAS Viya 3, is typically run before a migration.
+Running a collection then a comparison, the first time following a migration, will compare pre-migration to post-migration artifacts.
+Subsequent collection/comparison runs will compare post-migration to post-migration artifacts.
+To re-run a pre-migration to post migration comparison, set the COMPARISON=&rdquo;migration&rdquo; environment variable.</p>
+<pre class="highlight"><code class="language-bash">kubectl set env cronjob/sas-inventory-collector TENANT=&lt;tenant-name&gt;
+kubectl set env cronjob/sas-inventory-collector COMPARISON=migration
+kubectl delete job sas-inventory-comparison-job
+kubectl create job --from=cronjob/sas-inventory-collector sas-inventory-comparison-job
+kubectl set env cronjob/sas-inventory-collector COMPARISON-</code></pre>
+    </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Disassociate a SAS Viya Platform Deployment from the SAS Viya Platform Deployment Operator</title>
+    </head>
+    <body>
+        <h1 id="140342937597792disassociate-a-sas-viya-platform-deployment-from-the-sas-viya-platform-deployment-operator">Disassociate a SAS Viya Platform Deployment from the SAS Viya Platform Deployment Operator</h1>
+<p>To remove SAS Viya Platform Deployment Operator management of updates to a SAS
+Viya platform deployment, you must disassociate the deployment from the
+SASDeployment custom resource and then delete the SASDeployment custom resource.
+The
+<code>$deploy/sas-bases/examples/deployment-operator/disassociate/disassociate-deployment-operator.sh</code>
+script performs these actions.</p>
+<p>Running the script requires <code>bash</code>, <code>kubectl</code>, and <code>jq</code>. SAS recommends that you
+save the current SASDeployment custom resource before executing the script
+because the script deletes it.</p>
+<p>First, make the script executable with the following command.</p>
+<pre class="highlight"><code class="language-bash">chmod 755 ./disassociate-deployment-operator.sh</code></pre>
+
+<p>Then execute the script, specifying the namespace which contains the
+SASDeployment custom resource.</p>
+<pre class="highlight"><code class="language-bash">./disassociate-deployment-operator.sh &lt;name-of-namespace&gt;</code></pre>
+
+<p>The script removes the SASDeployment ownerReference from the <code>.metadata.
+ownerReferences</code> field and the
+<code>kubectl.kubernetes.io/last-applied-configuration</code> annotation in all resources
+in the namespace. It then removes the SASDeployment custom resource. The SAS
+Viya platform deployment is otherwise unchanged.</p>
+<p>If you want to use the SAS Viya Platform Deployment Operator for this SAS Viya
+platform deployment in the future, a SASDeployment custom resource can be
+reintroduced into the namespace. See the <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment
+Guide</a>
+for details.</p>
+    </body>
+</html>

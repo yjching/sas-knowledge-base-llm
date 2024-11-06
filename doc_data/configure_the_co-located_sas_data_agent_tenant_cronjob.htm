@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure the Co-located SAS Data Agent Tenant CronJob</title>
+    </head>
+    <body>
+        <h1 id="140342938568448configure-the-co-located-sas-data-agent-tenant-cronjob">Configure the Co-located SAS Data Agent Tenant CronJob</h1>
+<h2 id="140342938568448overview">Overview</h2>
+<p>This README file describes the configuration of the sas-data-agent-server-tenant CronJob used when onboarding or offboarding co-located SAS Data Agent tenants.</p>
+<h2 id="140342938568448prerequisites">Prerequisites</h2>
+<p>Before you start the deployment you should determine the OAuth secret that will be shared by the co-located SAS Data Agent tenant and any remote SAS Data Agents.</p>
+<h2 id="140342938568448onboard-a-tenant">Onboard a Tenant</h2>
+<p>Here are the basic steps to onboard a co-located SAS Data Agent tenant.</p>
+<h3 id="140342938568448specify-options-via-the-configmap">Specify Options via the ConfigMap</h3>
+<ol>
+<li>
+<p>Find the name of the ConfigMap:</p>
+<pre class="highlight"><code class="language-bash">kubectl get configmap | grep sas-data-agent-server-tenant-config</code></pre>
+
+</li>
+<li>
+<p>Get the current ConfigMap options and save them to a file:</p>
+<pre class="highlight"><code class="language-bash">kubectl get configmap sas-data-agent-server-tenant-config-\&lt;hash from step 1\&gt; -o yaml \&gt; tda-config.yaml</code></pre>
+
+</li>
+<li>
+<p>Edit the tda-config.yaml file and change any values based on the descriptions in &ldquo;ConfigMap Keys and Values&rdquo; below:</p>
+<pre class="highlight"><code class="language-bash">vi tda-config.yaml</code></pre>
+
+</li>
+<li>
+<p>Update the ConfigMap with your changes:</p>
+<pre class="highlight"><code class="language-bash">kubectl apply -f tda-config.yaml</code></pre>
+
+</li>
+</ol>
+<h3 id="140342938568448specify-the-oauth-secret">Specify the OAuth Secret</h3>
+<p>The value for the OAuth secret corresponds to the co-located SAS Data Agent SAS_DA_OAUTH_SECRET kustomization option. It should match the value specified for the remote SAS Data Agent.</p>
+<ol>
+<li>
+<p>Get a base64-encoded version of the secret you want to share between the new co-located SAS Data Agent tenant and any remote SAS Data Agents:</p>
+<pre class="highlight"><code class="language-bash">echo -n "mysecret" | base64</code></pre>
+
+</li>
+<li>
+<p>Get the current secret and save it to the tda-secrets.yaml file:</p>
+<pre class="highlight"><code class="language-bash">kubectl get secret sas-data-agent-server-tenant-secrets -o yaml \&gt; tda-secrets.yaml</code></pre>
+
+</li>
+<li>
+<p>Edit the tda-secrets.yaml file:</p>
+<pre class="highlight"><code class="language-bash">vi tda-secrets.yaml</code></pre>
+
+</li>
+<li>
+<p>Update the value for the SAS_DA_TENANT_OAUTH_SECRET key with the base-64 encoded secret. Here is an example:</p>
+<pre class="highlight"><code class="language-bash">SAS_DA_TENANT_OAUTH_SECRET: bXlzZWNyZXQ=</code></pre>
+
+</li>
+<li>
+<p>Save the new secret:</p>
+<pre class="highlight"><code class="language-bash">kubectl apply -f tda-secrets.yaml</code></pre>
+
+</li>
+<li>
+<p>Create the CronJob to onboard the new tenant:</p>
+<pre class="highlight"><code class="language-bash">kubectl create job --from=cronjob/sas-data-agent-server-tenant \&lt;unique name\&gt;</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938568448offboard-a-tenant">Offboard a Tenant</h2>
+<p>Here are the basic steps to offboard a co-located SAS Data Agent tenant.</p>
+<ol>
+<li>
+<p>Find the name of the ConfigMap:</p>
+<pre class="highlight"><code class="language-bash">kubectl get configmap | grep sas-data-agent-server-tenant-config</code></pre>
+
+</li>
+<li>
+<p>Get the current ConfigMap options and save them to a file:</p>
+<pre class="highlight"><code class="language-bash">kubectl get configmap sas-data-agent-server-tenant-config-\&lt;hash from above\&gt; -o yaml \&gt; tda-config.yaml</code></pre>
+
+</li>
+<li>
+<p>Edit the file and set SAS_DA_TENANTID to the tenant to be offboarded:</p>
+<pre class="highlight"><code class="language-bash">vi tda-config.yaml</code></pre>
+
+</li>
+<li>
+<p>Update the ConfigMap with your changes:</p>
+<pre class="highlight"><code class="language-bash">kubectl apply -f tda-config.yaml</code></pre>
+
+</li>
+<li>
+<p>Create the CronJob to Onboard the New Tenant:</p>
+<pre class="highlight"><code class="language-bash">kubectl create job --from=cronjob/sas-data-agent-server-tenant \&lt;unique name\&gt;</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938568448configmap-keys-and-values">ConfigMap Keys and Values</h2>
+<p>The following keys and values can be specified to the sas-data-agent-server-tenant CronJob via the ConfigMap.</p>
+<h3 id="140342938568448sas_da_tenantid">SAS_DA_TENANTID</h3>
+<p>This option sets the co-located SAS Data Agent SAS_DA_TENANTID option.
+Enter a string that specifies the assigned ID for the new co-located SAS Data Agent tenant. 
+This is a <em>REQUIRED</em> option and must be specified.
+<strong>Note:</strong>  If you are performing an update, you can specify * to indicate that all tenants should be updated.</p>
+<h3 id="140342938568448sas_da_tenant_job_action">SAS_DA_TENANT_JOB_ACTION</h3>
+<p>Enter ONBOARD to create a new tenant, OFFBOARD to remove a tenant, or UPDATE to update a tenant.
+<strong>Note:</strong> The co-located SAS Data Agent default provider tenant updates tenants automatically when
+its pod is restarted, so users do not generally need to update unless they require manual updates.
+The default is &ldquo;ONBOARD&rdquo; if not specified.</p>
+<h2 id="140342938568448monitor-the-onboardoffboard-job">Monitor the Onboard/Offboard job</h2>
+<p>The CronJob will run in a pod containing the \&lt;unique name> you specified when you created it.</p>
+<ol>
+<li>
+<p>Get the CronJob pod name:</p>
+<pre class="highlight"><code class="language-bash">kubectl get pods | grep \&lt;unique name\&gt;</code></pre>
+
+</li>
+<li>
+<p>View the CronJob log:</p>
+<pre class="highlight"><code class="language-bash">kubectl logs \&lt;pod name from above\&gt;</code></pre>
+
+<h2 id="140342938568448reduce-rbac-permissions-for-single-tenant-deployments">Reduce RBAC Permissions for Single Tenant Deployments</h2>
+</li>
+</ol>
+<p>The Kubernetes RBAC security properties for sas-data-agent-server-tenant and sas-data-agent-server-colocated include &lsquo;verbs: *&rsquo; because they use the Kubernetes dynamic API to apply changes when onboarding, offboarding, and updating tenants.
+Some customers may not allow this level of privilege when attempting to deploy Viya.  Customers who do not wish to deploy multiple SAS Data Agent tenants can reduce the RBAC security requirements by performing the following steps before deployment:    </p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/sas-data-agent-server-colocated/single-tenant-colocated-rbac-transformer.yaml</code> file to <code>$deploy/sas-config/sas-data-agent-server-colocated/single-tenant-colocated-rbac-transformer.yaml</code>.</p>
+</li>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/data-agent-server-tenant/single-tenant-cronjob-rbac-transformer.yaml</code> file to <code>$deploy/sas-config/data-agent-server-tenant/single-tenant-cronjob-rbac-transformer.yaml</code>.</p>
+</li>
+<li>
+<p>Add a reference to each of these transformers to the end of the transformers block
+of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an
+example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-data-agent-server-colocated/single-tenant-colocated-rbac-transformer.yaml
+- site-config/data-agent-server-tenant/single-tenant-cronjob-rbac-transformer.yaml</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

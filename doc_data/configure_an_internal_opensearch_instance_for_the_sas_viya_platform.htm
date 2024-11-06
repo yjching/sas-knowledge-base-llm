@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure an Internal OpenSearch Instance for the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937696528configure-an-internal-opensearch-instance-for-the-sas-viya-platform">Configure an Internal OpenSearch Instance for the SAS Viya Platform</h1>
+<p><strong>Note:</strong> SAS terminology standards prohibit the use of the term &ldquo;master.&rdquo; However, this document refers to the term &ldquo;master node&rdquo; to maintain alignment with OpenSearch documentation.</p>
+<p><strong>Note:</strong> In previous releases, the SAS Viya platform included OpenDistro for Elasticsearch. Many Kubernetes resources keep the name OpenDistro for backwards compatiblity. </p>
+<p>This README file describes the files used to customize an internally managed instance of OpenSearch using the sas-opendistro operator provided by SAS. </p>
+<h2 id="140342937696528instructions">Instructions</h2>
+<p>In order to use the internal search cluster instance, you must customize your
+deployment to point to the required overlay and transformers.</p>
+<ol>
+<li>
+<p>Go to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). In the
+   resources block of that file, add the following content, including adding
+   the block if it does not already exist.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- sas-bases/overlays/internal-elasticsearch
+...</code></pre>
+
+</li>
+<li>
+<p>Go to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). In the
+   transformers block of that file, add the following content, including adding
+   the block if it does not already exist.</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/internal-elasticsearch/internal-elasticsearch-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Deploying OpenSearch requires configuration to support the ability to create many memory mapped areas if <code>vm.max_map_count</code> is set too low. </p>
+<p>Several methods are available to configure the sysctl option <code>vm.max_map_count</code> documented below. Choose a method which is supported for your platform.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Platforms</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use sas-opendistro-sysctl init container <em>(recommended)</em></td>
+<td>Microsoft Azure Kubernetes Service (AKS) without Microsoft Defender<br/>Amazon Elastic Kubernetes Service (EKS) <br/>Google Kubernetes Engine (GKE)<br/>RedHat Openshift<br/></td>
+<td>Privileged Containers<br/>Allow Privilege Escalation<br/></td>
+</tr>
+<tr>
+<td>Use sas-opendistro-sysctl DaemonSet</td>
+<td>Microsoft Azure Kubernetes Service (AKS) with Microsoft Defender</td>
+<td>Privileged Containers<br/>Allow Privilege Escalation<br/>Kubernetes nodes for stateful workloads labeled with <code>workload.sas.com/class</code> as <code>stateful</code></td>
+</tr>
+<tr>
+<td>Apply sysctl configuration manually</td>
+<td>All platforms</td>
+<td>Ability to configure sysctl on stateful Kubernetes nodes</td>
+</tr>
+<tr>
+<td>Disable mmap support</td>
+<td>All platforms</td>
+<td>Unable to apply sysctl configuration manually or use privileged containers</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p><strong>Use sas-opendistro-sysctl init container</strong>: If your deployment allows privileged containers, add a reference to <code>sas-bases/overlays/internal-elasticsearch/sysctl-transformer.yaml</code> to the transformers block of the base kustomization.yaml. The <code>sysctl-transformer.yaml</code> transformer must be included before the <code>sas-bases/overlays/required/transformers.yaml</code> transformer. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- sas-bases/overlays/internal-elasticsearch/sysctl-transformer.yaml
+- sas-bases/overlays/required/transformers.yaml</code></pre>
+
+</li>
+<li>
+<p><strong>Use sas-opendistro-sysctl DaemonSet</strong> (Microsoft Azure Kubernetes Service with Microsoft Defender only): If your deployment allows privileged containers and you are deploying to an environment secured by Microsoft Defender, add a reference to <code>sas-bases/overlays/internal-elasticsearch/sysctl-daemonset.yaml</code> to the resources block of the base kustomization file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- sas-bases/overlays/internal-elasticsearch/sysctl-daemonset.yaml</code></pre>
+
+</li>
+<li>
+<p><strong>Apply sysctl configuration manually</strong>: If your deployment does not allow privileged containers, the Kubernetes administrator should set the <code>vm.max_map_count</code> property to be at least 262144 for stateful workload nodes.</p>
+</li>
+<li>
+<p><strong>Disable mmap support</strong>: If your deployment does not allow privileged containers and you are in an environment where you cannot control the memory map settings, add a reference to <code>sas-bases/overlays/internal-elasticsearch/disable-mmap-transformer.yaml</code> to the transformers block of the base kustomization.yaml to disable memory mapping instead. The <code>disable-mmap-transformer.yaml</code> transformer must be included before the <code>sas-bases/overlays/required/transformers.yaml</code> transformer. Here is an example: </p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- sas-bases/overlays/internal-elasticsearch/disable-mmap-transformer.yaml
+- sas-bases/overlays/required/transformers.yaml</code></pre>
+
+<p>Disabling memory mapping is discouraged since doing so will negatively impact performance and may result in out of memory exceptions. </p>
+</li>
+<li>
+<p>For additional customization options, refer to the following README files:</p>
+</li>
+<li>
+<p>Update the storage class used by OpenSearch: <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/storage/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_a_default_storageclass_for_opensearch.htm</code> (for HTML format).</p>
+</li>
+<li>Configure a custom topology for OpenSearch: <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/topology/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_a_default_topology_for_opensearch.htm</code> (for HTML format).</li>
+<li>Configure a custom run user for OpenSearch: <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/run-user/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_a_run_user_for_opensearch.htm</code> (for HTML format).</li>
+<li>Additional configuration steps for Red Hat OpenShift: <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/openshift/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/opensearch_on_red_hat_openshift.htm</code> (for HTML format).</li>
+<li>
+<p>Disable OpenSearch security audit logs: <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/security-audit-logs/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/opensearch_security_audit_logs.htm</code> (for HTML format).</p>
+</li>
+<li>
+<p>After you revise the base kustomization.yaml file, continue your SAS Viya platform
+   deployment as documented in
+   <a href="http://documentation.sas.com/?softwareId=mysas&amp;softwareVersion=prod&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm&amp;locale=en">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h2 id="140342937696528supported-topologies">Supported Topologies</h2>
+<p>A single cluster is supported with the following topologies:
+* One Node Set with both master and data roles.
+* Two Node Sets: one with dedicated master role, and other with dedicated data role.</p>
+<h2 id="140342937696528operator-constraints">Operator Constraints</h2>
+<p>The operator does not support the following actions:
+* Dynamically changing a running cluster&rsquo;s properties, PersistentVolumeClaims or topology.
+* Deleting PersistentVolumeClaims when a cluster is deleted.</p>
+<h1 id="140342937696528upgrade-the-internal-opensearch-operator">Upgrade the Internal OpenSearch Operator</h1>
+<h2 id="140342937696528overview">Overview</h2>
+<p>If you are updating your software, you must perform the following steps.
+If you are performing a new deployment of your software, these steps can be
+safely ignored.</p>
+<h2 id="140342937696528instructions_1">Instructions</h2>
+<p>The following steps need to be performed before applying your manifest for the
+new version of the SAS Viya platform. Replace the entire variable
+<code>{{ NAME-OF-NAMESPACE }}</code>, including the braces, with the Kubernetes
+namespace used for the SAS Viya platform.</p>
+<ol>
+<li>
+<p>As an administrator with namespace permissions, scale down the existing internal
+   OpenSearch Operator deployment:</p>
+<pre class="highlight"><code class="language-bash">kubectl scale deployment --replicas=0 sas-opendistro-operator -n {{ NAME-OF-NAMESPACE }}</code></pre>
+
+</li>
+<li>
+<p>As an administrator with namespace permissions, run the following command.
+   The command ensures that there are no pods running the internal OpenSearch
+   operator.</p>
+<pre class="highlight"><code class="language-bash">kubectl get po -l name=sas-opendistro-operator -n {{ NAME-OF-NAMESPACE }}</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

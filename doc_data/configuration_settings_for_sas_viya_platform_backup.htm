@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for SAS Viya Platform Backup</title>
+    </head>
+    <body>
+        <h1 id="140342938778400configuration-settings-for-sas-viya-platform-backup">Configuration Settings for SAS Viya Platform Backup</h1>
+<h2 id="140342938778400overview">Overview</h2>
+<p>This README describes how to revise and apply the settings for
+configuring backup jobs.</p>
+<h2 id="140342938778400change-the-storageclass-for-persistentvolumeclaims-used-for-storing-backups">Change the StorageClass for PersistentVolumeClaims Used for Storing Backups</h2>
+<p>If you want to retain the PersistentVolumeClaim (PVC) used for backup when the namespace is deleted,
+then use a StorageClass with a ReclaimPolicy of&rsquo;Retain&rsquo; as the backup PVC.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/backup/configure/sas-common-backup-data-storage-class-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/backup</code>.</p>
+</li>
+<li>
+<p>Follow the instructions in the copied sas-common-backup-data-storage-class-transformer.yaml
+file to change the values in that file as necessary.</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/backup</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/backup/sas-common-backup-data-storage-class-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400change-the-storage-size-for-the-sas-common-backup-data-persistentvolumeclaim">Change the Storage Size for the <code>sas-common-backup-data</code> PersistentVolumeClaim</h2>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/backup/configure/sas-common-backup-data-storage-size-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/backup</code>.</p>
+</li>
+<li>
+<p>Follow the instructions in the copied sas-common-backup-data-storage-size-transformer.yaml
+file to change the values in that file as necessary.</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/backup</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/backup/sas-common-backup-data-storage-size-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400change-the-default-backup-schedule-to-a-custom-schedule">Change the Default Backup Schedule to a Custom Schedule</h2>
+<p>By default, the backup is run once per week on Sundays at 1:00 a.m. Use
+the following instructions to schedule a backup more suited to your resources.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/backup/configure/sas-scheduled-backup-job-change-default-backup-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/backup</code>.</p>
+</li>
+<li>
+<p>Replace {{ SCHEDULE-BACKUP-CRON-EXPRESSION }} with the cron expression for the desired schedule in the copied sas-scheduled-backup-job-change-default-backup-transformer.yaml.</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/backup</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/backup/sas-scheduled-backup-job-change-default-backup-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400modify-the-resources-for-the-backup-job">Modify the Resources for the Backup Job</h2>
+<p>If the default resources are not sufficient for the completion or successful execution of the backup job, modify the resources to the values you desire.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/backup/configure/sas-backup-job-modify-resources-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/backup</code>.</p>
+</li>
+<li>
+<p>In the copied file, replace {{ CPU-LIMIT }} with the desired value of CPU.
+{{ CPU-LIMIT }} must be a non-zero and non-negative numeric value, such as &ldquo;3&rdquo; or &ldquo;5&rdquo;.
+You can specify fractional values for the CPUs by using decimals, such as &ldquo;1.5&rdquo; or &ldquo;0.5&rdquo;.</p>
+</li>
+<li>
+<p>In the same file, replace {{ MEMORY-LIMIT }} with the desired value of memory.
+{{ MEMORY-LIMIT }} must be a non-zero and non-negative numeric value followed by &ldquo;Gi&rdquo;. For example, &ldquo;8Gi&rdquo; for 8 gigabytes.</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/backup</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/backup/sas-backup-job-modify-resources-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400modify-the-resources-of-the-scan-job">Modify the Resources of the Scan Job</h2>
+<p>If the default resources are not sufficient for the completion or successful execution of the scan job, modify the resources to the values you desire.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/backup/configure/sas-scan-job-modify-resources-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/backup</code>.</p>
+</li>
+<li>
+<p>In the copied file, replace {{ CPU-LIMIT }} with the desired value of CPU.
+{{ CPU-LIMIT }} must be a non-zero and non-negative numeric value, such as &ldquo;3&rdquo; or &ldquo;5&rdquo;.
+You can specify fractional values for the CPUs by using decimals, such as &ldquo;1.5&rdquo; or &ldquo;0.5&rdquo;.</p>
+</li>
+<li>
+<p>In the same file, replace {{ MEMORY-LIMIT }} with the desired value of memory.
+{{ MEMORY-LIMIT }} must be a non-zero and non-negative numeric value followed by &ldquo;Gi&rdquo;. For example, &ldquo;8Gi&rdquo; for 8 gigabytes.</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/backup</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/backup/sas-scan-job-modify-resources-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400modify-the-resources-of-the-backup-copy-job">Modify the Resources of the Backup Copy Job</h2>
+<p>If the default resources are not sufficient for the completion or successful execution of the backup copy job, modify the resources to the values you desire.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/backup/configure/sas-backup-copy-job-modify-resources-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/backup</code>.</p>
+</li>
+<li>
+<p>In the copied file, replace {{ CPU-LIMIT }} with the desired value of CPU.
+{{ CPU-LIMIT }} must be a non-zero and non-negative numeric value, such as &ldquo;3&rdquo; or &ldquo;5&rdquo;.
+You can specify fractional values for the CPUs by using decimals, such as &ldquo;1.5&rdquo; or &ldquo;0.5&rdquo;.</p>
+</li>
+<li>
+<p>In the same file, replace {{ MEMORY-LIMIT }} with the desired value of memory.
+{{ MEMORY-LIMIT }} must be a non-zero and non-negative numeric value followed by &ldquo;Gi&rdquo;. For example, &ldquo;8Gi&rdquo; for 8 gigabytes.</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/backup</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/backup/sas-backup-copy-job-modify-resources-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400modify-the-resources-of-the-backup-agent-container-in-the-cas-controller-pod">Modify the Resources of the Backup Agent Container in the CAS Controller Pod</h2>
+<p>If the default resources are not sufficient for the completion or successful execution of the CAS controller pod, modify the resources of backup agent container of CAS controller pod to the values you desire.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/backup/configure/sas-cas-server-backup-agent-modify-resources-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/backup</code>.</p>
+</li>
+<li>
+<p>In the copied file, replace {{ CPU-LIMIT }} with the desired value of CPU.
+{{ CPU-LIMIT }} must be a non-zero and non-negative numeric value, such as &ldquo;3&rdquo; or &ldquo;5&rdquo;.
+You can specify fractional values for the CPUs by using decimals, such as &ldquo;1.5&rdquo; or &ldquo;0.5&rdquo;.</p>
+</li>
+<li>
+<p>In the same file, replace {{ MEMORY-LIMIT }} with the desired value of memory.
+{{ MEMORY-LIMIT }} must be a non-zero and non-negative numeric value followed by &ldquo;Gi&rdquo;. For example, &ldquo;8Gi&rdquo; for 8 gigabytes.</p>
+</li>
+<li>
+<p>By default the patch will be applied to all of the CAS servers. If the patch transformer is being applied to a single CAS server, replace {{ NAME-OF-CAS-SERVER }} with the named CAS server in the same file and comment out the lines &lsquo;name: .*&rsquo; and &lsquo;labelSelector: &ldquo;sas.com/cas-server-default&rdquo;&rsquo; with a hashtag (#).</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/backup</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/backup/sas-cas-server-backup-agent-modify-resources-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400change-backupscan-job-timeout">Change Backup/Scan Job Timeout</h2>
+<ol>
+<li>
+<p>If you need to change the backup job timeout value, add an entry to the sas-backup-job-parameters configMap in the configMapGenerator block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). The entry uses the following format, where {{ TIMEOUT-IN-MINUTES }} is an integer</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - JOB_TIME_OUT={{ TIMEOUT-IN-MINUTES }}</code></pre>
+
+<p>If the sas-backup-job-parameters configMap is already present in the base kustomization.yaml file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400change-backup-retention-period">Change Backup Retention Period</h2>
+<ol>
+<li>
+<p>If you need to change the backup retention period, add an entry to the sas-backup-job-parameters configMap in the configMapGenerator block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). The entry uses the following format, where {{ RETENTION-PERIOD-IN-DAYS }} is an integer.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - RETENTION_PERIOD={{ RETENTION-PERIOD-IN-DAYS }}</code></pre>
+
+<p>If the sas-backup-job-parameters configMap is already present in the base kustomization.yaml file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400back-up-additional-consul-properties">Back Up Additional Consul Properties</h2>
+<ol>
+<li>
+<p>If you want to back up additional consul properties, keys can be added to the sas-backup-agent-parameters configMap in the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). To add keys, add a data block to the configMap. If the sas-backup-agent-parameters configMap is already included in your base kustomization.yaml file, you should add the last line only. If the configMap isn&rsquo;t included, add the entire block.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-agent-parameters
+  behavior: merge
+  literals:
+  - BACKUP_ADDITIONAL_GENERIC_PROPERTIES="{{ CONSUL-KEY-LIST }}"</code></pre>
+
+<p>The {{ CONSUL-KEY-LIST }} should be a comma-separated list of properties to be backed up. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-agent-parameters
+  behavior: merge
+  literals:
+  - BACKUP_ADDITIONAL_GENERIC_PROPERTIES="config/files/sas.files/maxFileSize,config/files/sas.files/blockedTypes"</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400back-up-additional-consul-properties-for-tenants">Back Up Additional Consul Properties For Tenants</h2>
+<ol>
+<li>
+<p>If you want to back up additional consul properties for tenants, keys can be added to the sas-backup-agent-parameters configMap in the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). To add keys, add a data block to the configMap. If the sas-backup-agent-parameters configMap is already included in your base kustomization.yaml file, you should add the last line only. If the configMap isn&rsquo;t included, add the entire block.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-agent-parameters
+  behavior: merge
+  literals:
+  - BACKUP_ADDITIONAL_TENANT_PROPERTIES="{{ CONSUL-KEY-LIST }}"</code></pre>
+
+<p>The {{ CONSUL-KEY-LIST }} should be a comma-separated list of properties to be backed up for each tenant. Each property must include the &lsquo;&lt;tenantID&gt;&lsquo; as a placeholder for tenantID. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-agent-parameters
+  behavior: merge
+  literals:
+  - BACKUP_ADDITIONAL_TENANT_PROPERTIES="config/files/sas.files/tenants.&lt;tenantID&gt;.maxFileSize,config/files/sas.files/&lt;tenantID&gt;.blockedTypes"</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400exclude-specific-folders-and-files-during-file-system-backup">Exclude Specific Folders and Files During File System Backup</h2>
+<ol>
+<li>
+<p>To exclude specific folders and files during file system backup, add an entry to the sas-backup-job-parameters configMap in the configMapGenerator block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). If the sas-backup-job-parameters configMap is already included in your base kustomization.yaml file, you should add the last line only. If the configMap isn&rsquo;t included, add the entire block.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - FILESYSTEM_BACKUP_EXCLUDELIST="{{ EXCLUDE_PATTERN }}"</code></pre>
+
+<p>The {{ EXCLUDE_PATTERN }} should be a comma-separated list of patterns for files or folders to be excluded from the backup.
+ Here is an example that excludes all the files with extensions &ldquo;.tmp&rdquo; or &ldquo;.log&rdquo;:</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - FILESYSTEM_BACKUP_EXCLUDELIST="*.tmp,*.log"</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400disable-backup-job-failure-notification">Disable Backup Job Failure Notification</h2>
+<ol>
+<li>
+<p>By default, you are notified if the backup job fails. To disable backup job failure notification, add an entry to the sas-backup-job-parameters configMap in the configMapGenerator block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Replace {{ ENABLE-NOTIFICATIONS }} with the string &ldquo;false&rdquo;.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - ENABLE_NOTIFICATIONS={{ ENABLE-NOTIFICATIONS }}</code></pre>
+
+<p>If the sas-backup-job-parameters configMap is already present in the base kustomization.yaml file, add the last line only. If the configMap is not present, add the entire example.</p>
+<p>To restore the default, change the value of {{ ENABLE-NOTIFICATIONS }} from &ldquo;false&rdquo; to &ldquo;true&rdquo;.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400back-up-specific-set-of-tenants">Back Up Specific Set of Tenants</h2>
+<ol>
+<li>
+<p>To back up a specific set of tenants, add the list of tenants to be backed up to the sas-backup-job-parameters configMap in the configMapGenerator block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Replace {{ TENANT-LIST }} with a comma-separated list of tenant IDs to be backed up.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - TENANTS="{{ TENANT-LIST }}"</code></pre>
+
+<p>If the sas-backup-job-parameters configMap is already present in the base kustomization.yaml file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778400include-all-the-postgres-servers-registered-with-sas-viya-in-backup">Include all the Postgres servers registered with SAS Viya in backup</h2>
+<ol>
+<li>
+<p>To include all Postgres servers registerd with SAS Viya in the default back up, add the INCLUDE_POSTGRES variable to sas-backup-job-parameters configMap in the configMapGenerator block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Replace {{ INCLUDE-POSTGRES }} with a value &lsquo;true&rsquo;. If the variable set to &lsquo;false&rsquo; postgres servers will not be backed up by the SAS backup job.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - INCLUDE_POSTGRES="{{ INCLUDE-POSTGRES }}"</code></pre>
+
+<p>If the sas-backup-job-parameters configMap is already present in the base kustomization.yaml file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for Redis Operator</title>
+    </head>
+    <body>
+        <h1 id="140342937457568configuration-settings-for-redis-operator">Configuration Settings for Redis Operator</h1>
+<h2 id="140342937457568overview">Overview</h2>
+<p>Redis is used as a distributed cache for SAS Viya platform services. This README file describes the settings available for deploying the Redis Operator.</p>
+<h2 id="140342937457568installation">Installation</h2>
+<p>You can customize your Redis instance for your SAS Viya platform deployment by adding a transformer. Example transformers have been provided and are described below. Based on these descriptions, you can determine whether you want to customize your Redis deployment. </p>
+<p>If you decide to add a transformer, copy the example file that you have selected and save it in your site-config directory.</p>
+<p>Each file contains information about its content. The variables in the file are set
+off by curly braces and spaces, such as {{ PRIMARY-COUNT }}. Replace the
+entire variable string, including the braces, with the value you want to use.</p>
+<p>After you have edited the file, add a reference to it in the transformers block
+of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an
+example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/redis/operator/redis-disable-persistence.yaml
+- site-config/redis/operator/redis-modify-cluster-replicas.yaml
+- site-config/redis/operator/redis-modify-server-config.yaml
+- site-config/redis/operator/redis-modify-storage.yaml</code></pre>
+
+<h2 id="140342937457568examples">Examples</h2>
+<p>The example files are located at <code>$deploy/sas-bases/examples/redis/operator</code>.
+The following list contains a description of each example file for Redis Operator settings
+and the file names.</p>
+<ul>
+<li>modify the persistent storage allocation and class (redis-modify-storage.yaml)</li>
+<li>modify the cluster replica count (redis-modify-cluster-replicas.yaml)</li>
+<li>disable persistence (redis-disable-persistence.yaml)</li>
+</ul>
+    </body>
+</html>

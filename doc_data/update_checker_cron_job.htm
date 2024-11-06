@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Update Checker Cron Job</title>
+    </head>
+    <body>
+        <h1 id="140342937970192update-checker-cron-job">Update Checker Cron Job</h1>
+<p>The Update Checker cron job builds a report comparing the currently
+deployed release with available releases in the upstream repository.
+The report is written to the stdout of the launched job pod and
+indicates when new content related to the deployment is available.</p>
+<p>This example includes the following kustomize transform that
+defines proxy environment variables for the report when it
+is running behind a proxy server:</p>
+<pre class="highlight"><code>$deploy/sas-bases/examples/update-checker/proxy-transformer.yaml</code></pre>
+
+<p>For information about using the Update Checker, see <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=n08u2yg8tdkb4jn18u8zsi6yfv3d.htm&amp;locale=en#p09ingu4hyzgaun14w4b80koghr9">View the Update Checker Report</a>.</p>
+<p><strong>Note:</strong> Ensure that the version indicated by the version selector for the
+document matches the version of your SAS Viya platform software.</p>
+    </body>
+</html>

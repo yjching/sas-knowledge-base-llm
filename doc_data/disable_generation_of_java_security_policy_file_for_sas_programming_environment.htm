@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Disable Generation of Java Security Policy File for SAS Programming Environment</title>
+    </head>
+    <body>
+        <h1 id="140342937458480disable-generation-of-java-security-policy-file-for-sas-programming-environment">Disable Generation of Java Security Policy File for SAS Programming Environment</h1>
+<h2 id="140342937458480overview">Overview</h2>
+<p>This document describes the customizations that can be made by the Kubernetes
+administrator for managing the Java security policy file that is generated for
+the SAS Programming Environment.</p>
+<p>By default the deployment of the SAS Programming Environment generates a Java
+security policy file to prevent SAS programmers from executing Java code that
+would be deemed unsafe by the administrator directly from SAS code. This
+README file describes the customizations that can be made by the Kubernetes
+administrator to manage the Java security policy file that is generated.</p>
+<h2 id="140342937458480installation">Installation</h2>
+<p>The generated Java security policy controls permissions for Java access
+inside of the SAS Programming Environment.  In cases where the application of
+the policy file is deemed restrictive by the administrator, the generation of
+the policy file can be disabled.</p>
+<h3 id="140342937458480disable-the-generation-of-the-java-security-policy-file">Disable the Generation of the Java Security Policy File</h3>
+<p>SAS has provided an overlay to disable the generation of the Java security policy.</p>
+<p>To use the overlay:</p>
+<ol>
+<li>
+<p>Add a reference to the <code>sas-programming-environment/java-security-policy/
+disable-java-policy-file-generation.yaml</code>
+overlay to the transformers block of the base kustomization.yaml file
+ (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/sas-programming-environment/java-security-policy/disable-java-policy-file-generation.yaml
+- sas-bases/overlays/required/transformers.yaml
+...</code></pre>
+
+<p><strong>NOTE:</strong> The reference to the <code>sas-programming-environment/java-security-policy/disable-java-policy-file-generation.yaml</code>
+  overlay <strong>MUST</strong> come before the required transformers.yaml, as seen in the example above.</p>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342937458480enable-the-generation-of-the-java-security-policy-file">Enable the Generation of the Java Security Policy File</h3>
+<p>To enable the generation of the Java security policy file:</p>
+<ol>
+<li>
+<p>Remove <code>sas-bases/overlays/sas-programming-environment/java-security-policy/disable-java-policy-file-generation.yaml</code>
+from the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+    </body>
+</html>

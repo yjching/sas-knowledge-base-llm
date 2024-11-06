@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure Python for the SAS Viya Platform Using a Kubernetes Persistent Volume</title>
+    </head>
+    <body>
+        <h1 id="140342937701488configure-python-for-the-sas-viya-platform-using-a-kubernetes-persistent-volume">Configure Python for the SAS Viya Platform Using a Kubernetes Persistent Volume</h1>
+<h2 id="140342937701488overview">Overview</h2>
+<p>The SAS Viya platform can use a customer-prepared environment consisting of a Python installation and any required packages stored on a Kubernetes PersistentVolume.
+This README describes how to make that volume available to your deployment.</p>
+<h2 id="140342937701488prerequisites">Prerequisites</h2>
+<p>The SAS Viya platform provides YAML files that the Kustomize tool uses to configure Python. Before you use those files, you must perform the following tasks:</p>
+<ol>
+<li>
+<p>Make note of the attributes for the volume where Python and the associated packages are to be deployed. For example, note the server and directory for NFS.
+   For more information about various types of PersistentVolumes in Kubernetes, see <a href="#140342937701488additional-resources">Additional Resources</a>.
+   If you are deploying on Red Hat OpenShift cluster, you may need to define permissions to the service account for the volume that you mount for Python. For more information about installing the service account overlay, refer to the README file at <code>/$deploy/sas-bases/overlays/sas-microanalytic-score/service-account/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_sas_micro_analytic_service_to_add_service_account.htm</code> (for HTML format).</p>
+</li>
+<li>
+<p>Install Python and any necessary packages on the volume.</p>
+</li>
+<li>
+<p>In addition to the volume attributes, you must have the following information:</p>
+<ul>
+<li>{{ PYTHON-EXECUTABLE }} - the name of the Python executable file (for example, python or python3.8)</li>
+<li>{{ PYTHON-EXE-DIR }} - the directory or partial path (relative to the mount) containing the executable (for example, /bin or /virt_environs/envron_dm1/bin). Note the mount point for your Python deployment should be its top level directory.</li>
+<li>{{ SAS-EXTLANG-SETTINGS-XML-FILE }} - configuration file for enabling Python and R integration in CAS. This is only required if you are using Python with CMP or the EXTLANG package.</li>
+<li>{{ SAS-EXT-LLP-PYTHON-PATH }} - list of directories to look for when searching for run-time shared libraries (similar to LD_LIBRARY_PATH)</li>
+</ul>
+</li>
+<li>
+<p>The Python overlay for sas-microanalytic-score uses a Persistent Volume named astores-volume, which is defined in the astores overlay. The Python and astore overlays are usually installed together. If you choose to install the python overlay only, you still need to install the astores overlay as well. For more information on installing the astores overlay, refer to the &ldquo;Configure SAS Micro Analytic Service to Support Analytic Stores&rdquo; README file at <code>$deploy/sas-bases/examples/sas-microanalytic-score/astores/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_sas_micro_analytic_service_to_support_analytic_stores.htm</code> (for HTML format).</p>
+</li>
+</ol>
+<h2 id="140342937701488installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/sas-open-source-config/python</code> directory to the <code>$deploy/site-config/sas-open-source-config/python</code> directory.
+   Create the destination directory, if it does not already exist.</p>
+<p><strong>Note:</strong> If the destination directory already exists, <a href="#140342937701488verify-overlay-for-python-volume">verify that the overlay</a> has been applied.
+ If the output contains the <code>/python</code> mount directory path, you do not need to take any further actions, unless you want to change the overlay parameters to use a different Python environment.</p>
+</li>
+<li>
+<p>The kustomization.yaml file defines all the necessary environment variables. Replace all tags, such as {{ PYTHON-EXE-DIR }}, with the values that you gathered in the <a href="#140342937701488prerequisites">Prerequisites</a> step.
+   Then, set the following parameters, according to the SAS products you will be using:</p>
+<ul>
+<li>MAS_PYPATH and MAS_M2PATH are used by SAS Micro Analytic Service.</li>
+<li>PROC_PYPATH and PROC_M2PATH are used by PROC PYTHON in the Compute Server. PROC_M2PATH defaults to the correct location in the install, so it&rsquo;s not required to be provided in the kustomization.yaml. However, the example file shows the correct path as the value.</li>
+<li>DM_PYPATH is used by the Open Source Code node in SAS Visual Data Mining and Machine Learning. You can add DM_PYPATH2, DM_PYPATH3, DM_PYPATH4 and DM_PYPATH5 if you need to specify multiple Python environments.
+   The Open Source Code node allows you to choose which of these five environment variables to use during execution.</li>
+<li>SAS_EXTLANG_SETTINGS is used by applications that run Python and R code on CAS. This includes PROC FCMP and the Time Series External Languages (EXTLANG) package.
+   SAS_EXTLANG_SETTINGS should only be set in one example file; for example, if you set it in the Python example, you should not set it the R example.
+   SAS_EXTLANG_SETTINGS should point to an XML file that is readable by all users. The path can be in the same volume that contains the R environment or in any other volume that is accessible to CAS.
+   Refer to the documentation for the Time Series External Languages (EXTLANG) package for details on the expected XML schema.</li>
+<li>SAS_EXT_LLP_PYTHON is used when the base distribution or packages for open-source software require additional run-time libraries that are not part of the shipped container image.</li>
+</ul>
+<p><strong>Note:</strong> Any environment variables that you define in this example will be set on all pods, although they might not have an effect.
+ For example, setting MAS_PYPATH will not affect the Python executable used by the EXTLANG package. That executable is set in the SAS_EXTLANG_SETTINGS file.
+ However, if you define $MAS_PYPATH you can then use it in the SAS_EXTLANG_SETTINGS file. For example,</p>
+<p><code>&lt;LANGUAGE name="PYTHON3" interpreter="$MAS_PYPATH"&gt;&lt;/LANGUAGE&gt;</code></p>
+</li>
+<li>
+<p>Attach storage to your SAS Viya platform deployment. The python-transformer.yaml file uses PatchTransformers in Kustomize to attach the volume containing your Python installation to the SAS Viya platform. Replace {{ VOLUME-ATTRIBUTES }} with the appropriate volume specification.</p>
+<p>For example, when using an NFS mount, the {{ VOLUME-ATTRIBUTES }} tag should be replaced with <code>nfs: {path: /vol/python, server: myserver.sas.com}</code>
+ where <code>myserver.sas.com</code> is the NFS server and <code>/vol/python</code> is the NFS path you recorded in the Prerequisites step.</p>
+<p>The relevant code excerpt from python-transformer.yaml file before the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+# Add Python Volume
+  - op: add
+    path: /spec/template/spec/volumes/-
+    value: { name: python-volume, {{ VOLUME-ATTRIBUTES }} }</code></pre>
+
+<p>The relevant code excerpt from python-transformer.yaml file after the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+# Add Python Volume
+  - op: add
+    path: /spec/template/spec/volumes/-
+    value: { name: python-volume, nfs: {path: /vol/python, server: myserver.sas.com} }</code></pre>
+
+</li>
+<li>
+<p>Also in the python-transformer.yaml file, there is a PatchTransformer called sas-python-sas-java-policy-allow-list.  This PatchTransformer sets paths to the python executable so that the SAS runtime
+   allows execution of the python code.  Replace the {{ PYTHON-EXE-DIR }} and {{ PYTHON-EXECUTABLE }} tags with the appropriate values.  If you are specifying multiple Python
+   environments, each need to be set here.   Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: add-python-sas-java-policy-allow-list
+patch: |-
+  - op: add
+    path: /data/SAS_JAVA_POLICY_ALLOW_DM_PYPATH
+    value: /python/python3/bin/python3.8
+  - op: add
+    path: /data/SAS_JAVA_POLICY_ALLOW_DM_PYPATH2
+    value: /python/python2/bin/python2.7
+target:
+  kind: ConfigMap
+  name: sas-programming-environment-java-policy-config</code></pre>
+
+</li>
+<li>
+<p>Python runs in a separate container in the sas-microanalytic-score pod. Default resource limits are defined for the Python container in the python-transformer.yaml file. Depending upon your application requirements, the CPU and memory values can be modified in the resources section of that file.</p>
+<pre><code>```yaml
+ command: ["$(MAS_PYPATH)", "$(MAS_M2PATH)"]
+ envFrom:
+ - configMapRef:
+     name: sas-open-source-config-python
+ - configMapRef:
+     name: sas-open-source-config-python-mas
+ resources:
+   requests:
+     memory: 50Mi
+     cpu: 50m
+   limits:
+     memory: 500Mi
+     cpu: 500m
+```
+</code></pre>
+</li>
+<li>
+<p>Make the following changes to the base kustomization.yaml file in the $deploy directory.</p>
+<ul>
+<li>Add site-config/sas-open-source-config/python to the resources block.</li>
+<li>Add site-config/sas-open-source-config/python/python-transformer.yaml to the transformers block before the <code>sas-bases/overlays/required/transformers.yaml</code>.</li>
+</ul>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">  resources:
+  - site-config/sas-open-source-config/python
+
+  transformers:
+  ...
+  - site-config/sas-open-source-config/python/python-transformer.yaml
+  - sas-bases/overlays/required/transformers.yaml</code></pre>
+
+</li>
+<li>
+<p>Complete the deployment steps to apply the new settings. See <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a> in <em>SAS Viya Platform: Deployment Guide</em>.</p>
+<p><strong>Note:</strong> This overlay can be applied during the initial deployment of the SAS Viya platform or after the deployment of the SAS Viya platform.</p>
+<ul>
+<li>If you are applying the overlay during the initial deployment of the SAS Viya platform, complete all the tasks in the README files that you want to use, then run <code>kustomize build</code> to create and apply the manifests.</li>
+<li>If the overlay is applied after the initial deployment of the SAS Viya platform, run <code>kustomize build</code> to create and apply the manifests.</li>
+</ul>
+<p>All affected pods, except the CAS Server pod, are automatically restarted when the overlay is applied. If the overlay is applied after the initial deployment, the CAS Server might need an explicit restart. For information, see <a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calserverscas&amp;docsetTarget=n03003viyaservers000000admin.htm&amp;locale=en#p10hialoaqhwrtn1fuhsuakffwtv">Restart CAS Server</a>.</p>
+</li>
+</ol>
+<h2 id="140342937701488verify-overlay-for-python-volume">Verify Overlay for Python Volume</h2>
+<ol>
+<li>
+<p>Run the following command to verify whether the overlay has been applied:</p>
+<pre class="highlight"><code class="language-sh">kubectl describe pod  &lt;sas-microanalyticscore-pod-name&gt; -n &lt;name-of-namespace&gt;</code></pre>
+
+</li>
+<li>
+<p>Verify that the output contains the following mount directory paths:</p>
+<pre class="highlight"><code class="language-yaml">Mounts:
+  /python (r)</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937701488additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volumes in Kubernetes</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/volumes/#types-of-volumes">Volume Types in Kubernetes</a></li>
+<li><a href="http://documentation.sas.com/?cdcId=pgmsascdc&amp;cdcVersion=default&amp;docsetId=castsp&amp;docsetTarget=castsp_extlang_sect002.htm">External Languages Access Control Configuration</a> in <em>SAS Viya Platform Programming Documentation</em></li>
+<li><a href="http://documentation.sas.com/?cdcId=mascdc&amp;cdcVersion=default&amp;docsetId=masag&amp;docsetTarget=n149q46z3dnttzn1v4tt2adb1ebc.htm">Configuring SAS Micro Analytic Service to Use a Python Distribution</a> in <em>SAS Micro Analytic Service: Programming and Administration Guide</em></li>
+<li><a href="http://documentation.sas.com/doc/en/pgmsascdc/default/proc/p1iycdzbxw2787n178ysea5ghk6l.htm">PYTHON Procedure</a></li>
+</ul>
+    </body>
+</html>

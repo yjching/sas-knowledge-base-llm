@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Reduce Memory Resources for SAS Natural Language Understanding</title>
+    </head>
+    <body>
+        <h1 id="140342938530480reduce-memory-resources-for-sas-natural-language-understanding">Reduce Memory Resources for SAS Natural Language Understanding</h1>
+<h2 id="140342938530480overview">Overview</h2>
+<p>The SAS Natural Language Understanding service requires at least 4 GB of
+memory to run. If you do not use SAS Conversation Designer or the SAS
+Natural Language Understanding API, you can reduce the memory resources
+allocated by 3.5 GB by using the disable-parser-transformer.yaml file in
+the
+<code>$deploy/sas-bases/overlays/sas-natural-language-understanding/resources</code>
+directory.</p>
+<p>If the overlay is applied, SAS Conversation Designer and the SAS Natural
+Language Understanding API may return error messages when accessed.</p>
+<h2 id="140342938530480installation">Installation</h2>
+<ol>
+<li>
+<p>In the base kustomization.yaml in the <code>$deploy</code> directory, add
+   sas-bases/overlays/sas-natural-language-understanding/resources/disable-parser-transformer.yaml
+   to the transformers block.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/sas-natural-language-understanding/resources/disable-parser-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Deploy the software using the commands in
+   <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+<p><strong><em>Note:</em></strong> The overlay can be applied during the initial deployment
+ of the SAS Viya platform or after the deployment of the SAS Viya platform.</p>
+</li>
+</ol>
+<h2 id="140342938530480verify-the-changes">Verify the Changes</h2>
+<ol>
+<li>
+<p>Run the following command to see the current value of the memory
+   request:</p>
+<pre class="highlight"><code class="language-sh">kubectl get -n &lt;name-of-namespace&gt; deploy sas-natural-language-understanding -o jsonpath='{.spec.template.spec.containers[0].resources.requests.memory}'</code></pre>
+
+<p>If the output value is &ldquo;650M&rdquo;, then the memory request is set
+ correctly. If you do not get the result described in this step,
+ perform the Installation steps again.</p>
+</li>
+<li>
+<p>Run the following command to see the environment variables set for
+   the container:</p>
+<pre class="highlight"><code class="language-sh">kubectl get -n &lt;name-of-namespace&gt; deploy sas-natural-language-understanding -o jsonpath='{.spec.template.spec.containers[0].env}'</code></pre>
+
+<p>If an environment variable named SAS_NLU_ENABLE_DEPENDENCY_PARSER
+ exists in the output array with a value of &ldquo;false&rdquo;, then it has been
+ added correctly. If you do not get the result described in this step,
+ perform the Installation steps again.</p>
+</li>
+</ol>
+<h2 id="140342938530480uninstallation">Uninstallation</h2>
+<p>If you previously applied the overlay and now want to use SAS
+Conversation Designer or the SAS Natural Language Understanding API,
+you can uninstall the overlay using the following steps:</p>
+<ol>
+<li>
+<p>In the base kustomization.yaml in the <code>$deploy</code> directory, remove
+   sas-bases/overlays/sas-natural-language-understanding/resources/disable-parser-transformer.yaml
+   from the transformers block.</p>
+</li>
+<li>
+<p>Deploy the software using the commands in
+   <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h2 id="140342938530480additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits">Resource Requests and Limits for Pods in Kubernetes</a></li>
+</ul>
+    </body>
+</html>

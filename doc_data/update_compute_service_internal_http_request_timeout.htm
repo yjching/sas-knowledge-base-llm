@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Update Compute Service Internal HTTP Request Timeout</title>
+    </head>
+    <body>
+        <h1 id="140342938523008update-compute-service-internal-http-request-timeout">Update Compute Service Internal HTTP Request Timeout</h1>
+<h2 id="140342938523008overview">Overview</h2>
+<p>The SAS Compute service makes calls to Compute server processes running
+in the cluster using HTTP calls.  The Compute service uses a default request timeout
+of 600 seconds.  This README describes the customizations that can be made for
+updating this timeout to control how long the Compute
+service requests to the servers wait for a response.</p>
+<h2 id="140342938523008installation">Installation</h2>
+<p>The SAS Compute service internal HTTP request timeout can be modified by using the
+change-sas-compute-http-request-timeout.yaml file.</p>
+<ol>
+<li>
+<p>Copy the
+<code>$deploy/sas-bases/examples/compute/client-request-timeout/change-sas-compute-http-request-timeout.yaml</code>
+file to the site-config directory.</p>
+</li>
+<li>
+<p>In the copied file, replace {{ TIMEOUT }} with the number of seconds to use for
+the timeout.  Note that the trailing &ldquo;s&rdquo; after {{ TIMEOUT }} should be kept.</p>
+</li>
+</ol>
+<p>Here is an example:</p>
+<pre><code> ```yaml
+ ...
+ patch: |-
+   - op: replace
+     path: /spec/template/spec/containers/0/env/-
+       value:
+         name: SAS_HTTP_CLIENT_TIMEOUT_REQUEST
+         value: 1200s
+ ...
+ ```
+</code></pre>
+<ol>
+<li>
+<p>After you edit the file, add a reference to it in the transformers block of
+the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example assuming the file has been saved
+ to <code>$deploy/site-config/compute/client-request-timeout</code>:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- /site-config/compute/client-request-timeout/change-sas-compute-http-request-timeout.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938523008additional-resources">Additional Resources</h2>
+<p>For more information about deployment and using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

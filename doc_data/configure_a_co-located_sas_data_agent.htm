@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure a Co-located SAS Data Agent</title>
+    </head>
+    <body>
+        <h1 id="140342938264048configure-a-co-located-sas-data-agent">Configure a Co-located SAS Data Agent</h1>
+<h2 id="140342938264048overview">Overview</h2>
+<p>The directory <code>$deploy/sas-bases/examples/sas-data-agent-server-colocated</code> contains files to customize your SAS Viya platform deployment for 
+a co-located SAS Data Agent. This README describes the steps necessary 
+to make these files available to your SAS Viya platform deployment. It also describes 
+how to set required environment variables to point to these files. </p>
+<p><strong>Note:</strong> If you make changes to these files after the initial deployment,
+you must restart the co-located SAS Data Agent.</p>
+<h2 id="140342938264048prerequisites">Prerequisites</h2>
+<p>Before you start the deployment you should determine the OAUTH secret that will be used by co-located SAS Data Agent and any remote SAS Data Agents.</p>
+<p>You should also create a subdirectory within <code>$deploy/site-config</code> to store your co-located SAS Data Agent configurations. This README uses a user-created subdirectory called 
+<code>$deploy/site-config/sas-data-agent-server-colocated</code>. For more information, refer to the <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p1goxvcgpb7jxhn1n85ki73mdxc8.htm&amp;locale=en">&ldquo;Directory Structure&rdquo; section of the &ldquo;Pre-installation
+Tasks&rdquo; Deployment Guide</a>.</p>
+<h2 id="140342938264048installation">Installation</h2>
+<p>The base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>) provides configuration properties for the customization process.
+The co-located SAS Data Agent requires specific customizations in order to communicate with remote SAS Data Agents and configure server options. Copy the example <code>sas-data-agent-server-colocated-config.properties</code> and <code>sas-data-agent-server-colocated-secret.properties</code> files from <code>$deploy/sas-bases/examples/sas-data-agent-server-colocated</code> to <code>$deploy/site-config/sas-data-agent-server-colocated</code>.</p>
+<h2 id="140342938264048configuration">Configuration</h2>
+<p><strong>Note:</strong> The default values listed in the descriptions that follow should be suitable for most users.</p>
+<h3 id="140342938264048configure-the-oauth-secret">Configure the OAuth Secret</h3>
+<h4 id="140342938264048sas_da_oauth_secret">SAS_DA_OAUTH_SECRET</h4>
+<p>The sas-data-agent-server-colocated-secret.properties file contains configuration properties for the OAUTH secret. The OAUTH secret value is required and must be specified in order to communicate with a remote SAS Data Agent. There is no default value for the OAUTH secret.</p>
+<p><strong>Note:</strong> The following example is for illustration only and should not be used.</p>
+<p>Enter a string value for the OAUTH secret that will be shared with the remote SAS Data Agent. Here is an example:</p>
+<pre class="highlight"><code class="language-bash">SAS_DA_OAUTH_SECRET=MyS3cr3t</code></pre>
+
+<h3 id="140342938264048configure-logging">Configure Logging</h3>
+<p>The <code>sas-data-agent-server-colocated-config.properties</code> file contains configuration properties for logging.</p>
+<h4 id="140342938264048sas_da_debug_logtype">SAS_DA_DEBUG_LOGTYPE</h4>
+<p>Enter a string value to set the level of additional logging.</p>
+<pre><code> * `SAS_DA_DEBUG_LOGTYPE=TRACEALL` enables trace level for all log items.
+ * `SAS_DA_DEBUG_LOGTYPE=TRACE` enables trace level for most log items.
+ * `SAS_DA_DEBUG_LOGTYPE=PERFORMANCE` enables tracce/debug level items for performance debugging.
+ * `SAS_DA_DEBUG_LOGTYPE=PREFETCH` enables trace/debug level items for prefetch debugging.
+ * `SAS_DA_DEBUG_LOGTYPE=None` disables additional tracing.
+</code></pre>
+<p>If no value is specified, the default of None is used.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-bash">SAS_DA_DEBUG_LOGTYPE=None</code></pre>
+
+<h3 id="140342938264048configure-filesystem-access">Configure Filesystem Access</h3>
+<p>The <code>sas-data-agent-server-colocated-config.properties</code> file contains configuration properties that restrict drivers from accessing the container filesystem. By default, drivers can only access the directory tree <code>/data</code> which must be mounted on the co-located SAS Data Agent container.</p>
+<h4 id="140342938264048sas_da_restrict_content_root">SAS_DA_RESTRICT_CONTENT_ROOT</h4>
+<p>When set to TRUE, the file access drivers can only access the directory structure specified by SAS_DA_CONTENT_ROOT.</p>
+<p>When set to FALSE, the file access drivers can access any directories accessible from within the co-located SAS Data Agent container.</p>
+<p>If no value is specified, the default of TRUE is used.</p>
+<pre class="highlight"><code class="language-bash">SAS_DA_RESTRICT_CONTENT_ROOT=None</code></pre>
+
+<h4 id="140342938264048sas_da_content_root">SAS_DA_CONTENT_ROOT</h4>
+<p>Enter a string value to specify the directory tree that file access drivers are allowed to access. This value is ignored if SAS_DA_RESTRICT_CONTENT_ROOT=FALSE. If no value is specified, the default of <code>/data</code> is used.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-bash">SAS_DA_CONTENT_ROOT=/accounting/data</code></pre>
+
+<h3 id="140342938264048configure-access-to-java-hadoop-and-spark">Configure Access to Java, Hadoop, and Spark</h3>
+<p>The <code>sas-data-agent-server-colocated-config.properties</code> file contains configuration properties for
+Java, SAS/ACCESS Interface to Spark and SAS/ACCESS to Hadoop.</p>
+<h4 id="140342938264048configure-sas_da_hadoop_jar_path-and-sas_da_hadoop_config_path">Configure SAS_DA_HADOOP_JAR_PATH and SAS_DA_HADOOP_CONFIG_PATH</h4>
+<p>If your deployment includes SAS/ACCESS Interface to Spark, you must make your Hadoop JARs and configuration file available on a PersistentVolume or mounted storage.
+Set the options SAS_DA_HADOOP_JAR_PATH and SAS_DA_HADOOP_CONFIG_PATH to point to this location.
+See the SAS/ACCESS Interface to Spark documentation at <code>$deploy/sas-bases/examples/data-access/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configuring_sasaccess_and_data_connectors_for_sas_viya_4.htm</code> (for HTML format) for more details. These variables have no default values.</p>
+<p>Here are some examples:</p>
+<pre class="highlight"><code class="language-bash">SAS_DA_HADOOP_CONFIG_PATH=/clients/hadoopconfig/prod
+SAS_DA_HADOOP_JAR_PATH=/clients/jdbc/spark/2.6.22</code></pre>
+
+<h4 id="140342938264048sas_da_java_home">SAS_DA_JAVA_HOME</h4>
+<p>Use this variable to specify an alternate JAVA_HOME for use by the co-located SAS Data Agent. This variable has no default value.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-bash">SAS_DA_JAVA_HOME=/java/lib/jvm/jre</code></pre>
+
+<h3 id="140342938264048configure-miscellaneous-options">Configure Miscellaneous Options</h3>
+<h4 id="140342938264048sas_da_update_tenants">SAS_DA_UPDATE_TENANTS</h4>
+<p>Enter a string value that indicates how tenants should be updated when the default provider is updated.</p>
+<pre><code> * `SAS_DA_UPDATE_TENANTS=PROVIDER` indicates that all tenant's versions will be checked and updated if needed whenever the main provider tenant pod is restarted. 
+ * `SAS_DA_UPDATE_TENANTS=ALL` indicates that all all tenant's versions will be checked and updated if needed whenever any tenant pod is restarted.
+ * `SAS_DA_UPDATE_TENANTS=NONE` indicates that tenants will not be automatically updated. Administrators will need to manually run the sas-data-agent-server-tenant CronJob in order to update the tenants after the main provider tenant is updated.
+</code></pre>
+<p>If no value is specified, the default of Provider is used.</p>
+<h3 id="140342938264048revise-the-base-kustomizationyaml-file">Revise the Base kustomization.yaml File</h3>
+<p>Add these entries to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>) in order to include 
+the modified <code>sas-data-agent-server-colocated-config.properties</code> and <code>sas-data-agent-server-colocated-secret.properties</code> files.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+...
+- name: sas-data-agent-server-colocated-config
+  behavior: merge
+  envs:
+  - site-config/sas-data-agent-server-colocated/sas-data-agent-server-colocated-config.properties
+...
+secretGenerator:
+...
+- name: sas-data-agent-server-colocated-secrets
+  behavior: merge
+  envs:
+  - site-config/sas-data-agent-server-colocated/sas-data-agent-server-colocated-secret.properties</code></pre>
+
+<h2 id="140342938264048using-sasaccess-with-a-co-located-sas-data-agent">Using  SAS/ACCESS with a Co-located SAS Data Agent</h2>
+<p>For more information about configuring SAS/ACCESS, see the README file located at <code>$deploy/sas-bases/examples/data-access/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configuring_sasaccess_and_data_connectors_for_sas_viya_4.htm</code> (for HTML format).</p>
+<h2 id="140342938264048reduce-rbac-permissions-for-single-tenant-deployments">Reduce RBAC Permissions for Single Tenant Deployments</h2>
+<p>The Kubernetes RBAC security properties for sas-data-agent-server-tenant and sas-data-agent-server-colocated include &lsquo;verbs: *&rsquo; because they use the Kubernetes dynamic API to apply changes when onboarding, offboarding, and updating tenants.
+Some customers may not allow this level of privilege when attempting to deploy Viya.  Customers who do not wish to deploy multiple SAS Data Agent tenants can reduce the RBAC security requirements by performing the following steps before deployment:    </p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/sas-data-agent-server-colocated/single-tenant-colocated-rbac-transformer.yaml</code> file to <code>$deploy/sas-config/sas-data-agent-server-colocated/single-tenant-colocated-rbac-transformer.yaml</code>.</p>
+</li>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/data-agent-server-tenant/single-tenant-cronjob-rbac-transformer.yaml</code> file to <code>$deploy/sas-config/data-agent-server-tenant/single-tenant-cronjob-rbac-transformer.yaml</code>.</p>
+</li>
+<li>
+<p>Add a reference to each of these transformers to the end of the transformers block
+of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an
+example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-data-agent-server-colocated/single-tenant-colocated-rbac-transformer.yaml
+- site-config/data-agent-server-tenant/single-tenant-cronjob-rbac-transformer.yaml</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

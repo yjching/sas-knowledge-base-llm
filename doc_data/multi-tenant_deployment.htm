@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Multi-tenant Deployment</title>
+    </head>
+    <body>
+        <h1 id="140342937741632multi-tenant-deployment">Multi-tenant Deployment</h1>
+<h2 id="140342937741632overview">Overview</h2>
+<p>The SAS Viya platform supports multiple tenants on a single deployment by enabling multi-tenancy. This README describes the steps
+required to enable multi-tenancy in your SAS Viya platform deployment.</p>
+<h2 id="140342937741632instructions">Instructions</h2>
+<p>To set up a multi-tenant deployment, perform the following steps.</p>
+<ol>
+<li>
+<p>Copy <code>$deploy/sas-bases/examples/multi-tenant/sasdefault.yaml</code> to a new directory named &lsquo;multi-tenant&rsquo; under your siteconfig directory.
+   For example:<code>$deploy/site-config/multi-tenant/</code>. Note the &lsquo;{INGRESS_HOST}&rsquo; value used in the zones.internal.hostnames
+   property of the sasdefault.yaml file should not be modified because it will be replaced automatically during deployment.</p>
+</li>
+<li>
+<p>The SAS Viya platform supports two modes of data isolation (schemaPerApplicationTenant and databasePerTenant) for tenant data.
+schemaPerApplicationTenant specifies that a single database is shared by all tenants, but each tenant is partitioned
+into separate schemas based on the application or service. databasePerTenant specifies that a separate database
+instance is used for each tenant. The default mode is schemaPerApplicationTenant.</p>
+<p>To use databasePerTenant mode, uncomment the line containing &lsquo;sas.multi.tenancy.db.mode&rsquo; in your <code>$deploy/site-config/multi-tenant/sasdefault.yaml</code> file.</p>
+</li>
+<li>
+<p>In the transformers block of the base kustomization.yaml file, add a reference to the
+sas-shared-configmap-transformer.yaml overlay:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/multi-tenant/sas-shared-configmap-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>In the secretGenerator block of the base kustomization.yaml file, include the sasdefault.yaml file in
+the sas-consul-config secret. Create the secretGenerator block if it does not already exist.
+Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">secretGenerator:
+...
+- name: sas-consul-config
+behavior: merge
+files:
+- SASDEFAULT_CONF=site-config/multi-tenant/sasdefault.yaml
+...</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

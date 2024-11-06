@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>High Availability (HA) in the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937512160high-availability-ha-in-the-sas-viya-platform">High Availability (HA) in the SAS Viya Platform</h1>
+<h2 id="140342937512160overview">Overview</h2>
+<p>The SAS Viya platform can be deployed as a High Availability (HA) system. In this mode,
+the SAS Viya platform has redundant stateless and stateful services to handle service outages,
+such as an errant Kubernetes node.</p>
+<h2 id="140342937512160enable-high-availability">Enable High Availability</h2>
+<p>A kustomize transformer enables High Availability (HA) in the SAS Viya platform among the
+stateless microservices. Stateful services, with the exception of SMP CAS, are
+enabled HA at initial deployment.</p>
+<p>Add the <code>sas-bases/overlays/scaling/ha/enable-ha-transformer.yaml</code> to the
+transformers block in your base kustomization.yaml file.</p>
+<p><pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/scaling/ha/enable-ha-transformer.yaml</code></pre>
+After the base kustomization.yaml file is modified, deploy the software using the commands
+that are described in <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a>.</p>
+<p><strong>Note:</strong> Ensure that the version indicated by the version selector for the
+document matches the version of your SAS Viya platform software.</p>
+    </body>
+</html>

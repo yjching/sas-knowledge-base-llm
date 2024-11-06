@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>SAS Configurator for Open Source Options</title>
+    </head>
+    <body>
+        <h1 id="140342938567728sas-configurator-for-open-source-options">SAS Configurator for Open Source Options</h1>
+<h2 id="140342938567728overview">Overview</h2>
+<p>SAS Configurator for Open Source is a utility application that simplifies the download, configuration, building, and installation of Python and R from source. The results are a Python and R build that is located in a Persistent Volume Claim (PVC). The PVC and the builds that it contains are then referenced by pods that require Python and R for their operations.</p>
+<p>SAS Configurator for Open Source includes the ability to build and install multiple Python and R builds or versions in the same PVC. In order to handle multiple builds, it uses profiles, which are discussed later in this document. Various pods can reference different versions or builds of Python and R located in the PVC.</p>
+<p>SAS Configurator for Open Source also includes functionality to reduce downtime associated with updates. A given build is located in the PVC and then referenced by a pod using a symlink. In an update scenario, the symlink is changed to point to the latest build for that profile.</p>
+<p><strong>Note:</strong> The operating system within most SAS Viya platform containers, including the SAS Configurator for Open Source, is the latest available released version of Red Hat Universal Base Image 8 (UBI8). This means that the Python and R installations created by the SAS Configurator for Open Source will execute on an operating system compatible with Red Hat UBI8. This also means that any third-party binaries need to be UBI8 compatible to execute properly within SAS Viya platform UBI8 based containers.</p>
+<h2 id="140342938567728summary-of-steps">Summary of Steps</h2>
+<p>Building Python or R requires a number of steps. This section describes the steps performed by SAS Configurator for Open Source in its operation respective to Python and R.</p>
+<p>SAS Configurator for Open Source only processes configuration changes after the initial execution of the job. For example, packages are reprocessed only if a change occurs in the package list and the respective versions of R or Python remain unchanged. If the version of Python or R changes, then all steps are performed from the download of the source to the updating of symlinks.</p>
+<h3 id="140342938567728download">Download</h3>
+<p>For Python, downloads the source, signature file, and signer&rsquo;s key from the configured location. For R, only the source is downloaded.</p>
+<h3 id="140342938567728verify">Verify</h3>
+<p>Verifies the authenticity of the Python source using the signer&rsquo;s key and signature file. The R source cannot be verified at the time of this writing because signer keys are not generated for R source.</p>
+<h3 id="140342938567728extract">Extract</h3>
+<p>Extracts the Python and R sources into a temporary directory for building.</p>
+<h3 id="140342938567728build">Build</h3>
+<p>Configures and performs a make of the Python and R sources.</p>
+<h3 id="140342938567728installation">Installation</h3>
+<p>Installs the Python and R builds within the PVC and updates supporting components, such as pip, if applicable.</p>
+<h3 id="140342938567728installation-of-packages">Installation of Packages</h3>
+<p>Builds and installs configured packages for Python and R.</p>
+<h3 id="140342938567728sas-configurator-for-open-source-updates">SAS Configurator for Open Source Updates</h3>
+<p>If everything has completed successfully, creates the symbolic links, or changes the symbolic links&rsquo; targets to point to the latest builds for both Python and R.</p>
+<h2 id="140342938567728instructions">Instructions</h2>
+<h3 id="140342938567728manual-job-execution">Manual Job Execution</h3>
+<p>If you deployed your software using the Kubernetes command option, you should execute the job manually. Execute this command:</p>
+<pre class="highlight"><code class="language-yaml">kubectl create job -n &lt;namespace&gt; --from=cronjob/sas-pyconfig &lt;jobname&gt;</code></pre>
+
+<p>where namespace is the name of the namespace for the deployment and jobname is the name of the job to create from the CronJob.</p>
+<h3 id="140342938567728enable-sas-configurator-for-open-source-with-the-default-configuration-at-deployment">Enable SAS Configurator for Open Source with the Default Configuration at Deployment</h3>
+<p>The directory <code>$deploy/sas-bases/examples/sas-pyconfig</code> contains an example file,
+change-configuration.yaml. The example file contains the default options that are described in this README file. Take these steps to run with the default settings:</p>
+<ol>
+<li>
+<p>Copy <code>$deploy/sas-bases/examples/sas-pyconfig/change-configuration.yaml</code> to <code>$deploy/site-config/sas-pyconfig/change-configuration.yaml</code>.</p>
+</li>
+<li>
+<p>Edit <code>$deploy/site-config/sas-pyconfig/change-configuration.yaml</code> and change the value of global.enabled from <code>false</code> to <code>true</code>. If you are enabling Python, change the value of global.python_enabled from <code>false</code> to <code>true</code>. If you are enabling R, change the value of global.r_enabled from <code>false</code> to <code>true</code>.</p>
+</li>
+<li>
+<p>Add <code>site-config/sas-pyconfig/change-configuration.yaml</code> to the <code>transformers</code>
+   block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/sas-pyconfig/change-configuration.yaml</code></pre>
+
+<h3 id="140342938567728python-dependencies-on-r">Python Dependencies on R</h3>
+</li>
+</ol>
+<p>Some Python packages in the default Python profile rely on the existence of R to build properly. The pip_r_package option is sourced from the config map and configurable using the change-configuration.yaml file. Packages that require R must be added to the pip_r_packages option, rather than the pip_install_packages option, and R must be enabled and built successfully.</p>
+<h3 id="140342938567728enable-sas-configurator-for-open-source-with-custom-options-at-deployment">Enable SAS Configurator for Open Source with Custom Options at Deployment</h3>
+<p>The directory <code>$deploy/sas-bases/examples/sas-pyconfig</code> contains an example file named change-configuration.yaml. The example file contains the default options in this README file. To modify the default settings:</p>
+<ol>
+<li>
+<p>Copy <code>$deploy/sas-bases/examples/sas-pyconfig/change-configuration.yaml</code> to
+   <code>$deploy/site-config/sas-pyconfig/change-configuration.yaml</code>.</p>
+</li>
+<li>
+<p>Edit <code>$deploy/site-config/sas-pyconfig/change-configuration.yaml</code>.
+   Change the value of <code>global.enabled</code> from <code>false</code> to <code>true</code>. Make the desired changes or additions to the options within the file.</p>
+<pre><code>If you are configuring a new Python profile, the profile name must be placed in the `global.python_profiles` list, and all profile-specific options must be added to the file.
+If you are configuring a new R profile, the profile name must be placed in the `global.r_profiles` list, and all profile-specific options must be added to the file.
+</code></pre>
+</li>
+<li>
+<p>Add <code>site-config/sas-pyconfig/change-configuration.yaml</code> to the <code>transformers</code> block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/sas-pyconfig/change-configuration.yaml</code></pre>
+
+</li>
+</ol>
+<h3 id="140342938567728resource-management">Resource Management</h3>
+<p>SAS Configurator for Open Source requires more CPU and memory than most components. This requirement is largely due to Python and R building related operations such as those performed by configure and make. Since SAS Configurator for Open Source is disabled by default, pod resources are decreased so that they are not misallocated during scheduling. The default resource values are as follows:</p>
+<pre class="highlight"><code class="language-yaml">limits:
+  cpu: 250m
+  memory: 250Mi
+requests:
+  cpu: 25m
+  memory: 25Mi</code></pre>
+
+<p><strong><em>Important:</em></strong> If the default values are used with SAS Configuration for Open Source enabled, pod execution will result in a OOMKilled (Out of Memory Killed) status in the pod list and will never execute to completion. The requests and limits must be increased in order for the pod to complete successfully.</p>
+<p>If the environment does not use resource quotas, a CPU request value of 4000m and memory request value of 3000mi and no limits is a good starting point. No limits will allow the pod to use more than requested resources if they are available which can result in a quicker time to completion. With these values, the pod should complete its operations in approximately 15 mins and before the environment is stable of enough for wide spread use. Differences in hardware specifications will have an impact on the time it takes for the pod to complete.</p>
+<p>If the environment uses resource quotas, limit values must be specified and equal to or greater than the respective request values for CPU and memory.</p>
+<p>The values of requests and limits can be adjusted to meet specific needs of an environment. For example, those values can be reduced to allow scheduling within smaller environments or values can be increased to reduce the time associated with building multiple versions of Python and R.</p>
+<ol>
+<li>
+<p>Copy <code>$deploy/sas-bases/examples/sas-pyconfig/change-limits.yaml</code> to
+<code>$deploy/site-config/sas-pyconfig/change-limits.yaml</code>.</p>
+</li>
+<li>
+<p>Edit <code>$deploy/site-config/sas-pyconfig/change-limits.yaml</code> and change the values of CPU and memory accordingly. See examples that follow.</p>
+</li>
+<li>
+<p>Add <code>site-config/sas-pyconfig/change-limits.yaml</code> to the <code>transformers</code> block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/sas-pyconfig/change-limits.yaml</code></pre>
+
+</li>
+</ol>
+<h4 id="140342938567728resource-example-1">Resource Example 1</h4>
+<p>In this example, SAS Open Source Configuration is configured with a CPU request value of 4000m and memory request value of 3000mi. There is no limit to CPU and memory usage. This configuration should not be used in environments where resource quotas are in use.</p>
+<pre class="highlight"><code class="language-yaml">---
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: sas-pyconfig-limits
+patch: |-
+  - op: replace
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/cpu
+    value:
+      4000m
+  - op: replace
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/memory
+    value:
+      3000Mi
+  - op: remove
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/cpu
+  - op: remove
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/memory
+target:
+  group: batch
+  kind: CronJob
+  name: sas-pyconfig
+  version: v1
+#---
+#apiVersion: builtin
+#kind: PatchTransformer
+#metadata:
+#  name: sas-pyconfig-limits
+#patch: |-
+#  - op: replace
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/cpu
+#    value:
+#      4000m
+#  - op: replace
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/memory
+#    value:
+#      3000Mi
+#  - op: replace
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/cpu
+#    value:
+#      4000m
+#  - op: replace
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/memory
+#    value:
+#      3000Mi
+#target:
+#  group: batch
+#  kind: CronJob
+#  name: sas-pyconfig</code></pre>
+
+<h4 id="140342938567728resource-example-2">Resource Example 2</h4>
+<p>In this example, both requests and limits values for CPU and memory has been set to 4000m and 3000mi respectively. This configuration is could be used in an environment with resource quotas.</p>
+<pre class="highlight"><code class="language-yaml">#---
+#apiVersion: builtin
+#kind: PatchTransformer
+#metadata:
+#  name: sas-pyconfig-limits
+#patch: |-
+#  - op: replace
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/cpu
+#    value:
+#      4000m
+#  - op: replace
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/memory
+#    value:
+#      3000Mi
+#  - op: remove
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/cpu
+#  - op: remove
+#    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/memory
+#target:
+#  group: batch
+#  kind: CronJob
+#  name: sas-pyconfig
+#  version: v1
+---
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: sas-pyconfig-limits
+patch: |-
+  - op: replace
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/cpu
+    value:
+      4000m
+  - op: replace
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/requests/memory
+    value:
+      3000Mi
+  - op: replace
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/cpu
+    value:
+      4000m
+  - op: replace
+    path: /spec/jobTemplate/spec/template/spec/containers/0/resources/limits/memory
+    value:
+      3000Mi
+target:
+  group: batch
+  kind: CronJob
+  name: sas-pyconfig</code></pre>
+
+<h3 id="140342938567728change-the-configuration-and-rerun-the-job">Change the Configuration and Rerun the Job</h3>
+<p>You can change the configuration and run the SAS Configurator for Open Source job again without redeploying the SAS Viya platform.</p>
+<ol>
+<li>
+<p>Determine the exact name of the sas-pyconfig-parameters config map:</p>
+<pre class="highlight"><code class="language-bash">kubectl get configmaps -n &lt;name-of-namespace&gt; | grep sas-pyconfig`</code></pre>
+
+<p>The name will be something like sas-pyconfig-parameters-abcd1234.</p>
+</li>
+<li>
+<p>Edit the config map using the following command:</p>
+<pre class="highlight"><code class="language-bash">kubectl edit configmap &lt;sas-pyconfig-parameters-configmap-name&gt; -n &lt;name-of-namespace&gt;</code></pre>
+
+<p>In this example, <code>sas-pyconfig-parameters-configmap-name</code> is the name of the config map from step 1. Change the value of <code>global.enabled</code> to <code>true</code> if it is set to <code>false</code>, and make the desired changes or additions to the options.</p>
+</li>
+</ol>
+<p>If you are configuring a new R profile, the profile name must be placed in the <code>global.r_profiles</code> list, and all profile-specific options must be added to the file. If you are configuring a new Python profile, the profile name must be placed in the <code>global.python_profiles</code> list, and all profile-specific options must be added to the file. Save the changes when finished.</p>
+<ol>
+<li>
+<p>Create a job from the configured cronjob.</p>
+<pre class="highlight"><code class="language-bash">kubectl create job --namespace &lt;name-of-namespace&gt; --from cronjob/sas-pyconfig sas-pyconfig-job</code></pre>
+
+</li>
+<li>
+<p>A job pod is created that applies the changes made in the config map. The status of the pod can be viewed with
+   <code>kubectl get pods -n &lt;name-of-namespace&gt; | grep sas-pyconfig-job</code>.</p>
+</li>
+</ol>
+<h3 id="140342938567728disable-sas-configurator-for-open-source">Disable SAS Configurator for Open Source</h3>
+<p>By default, SAS Configurator for Open Source is disabled.</p>
+<ol>
+<li>
+<p>Determine the exact name of the sas-pyconfig-parameters config map:</p>
+<pre class="highlight"><code class="language-bash">kubectl get configmaps -n &lt;name-of-namespace&gt; | grep sas-pyconfig`</code></pre>
+
+<p>The name will be something like sas-pyconfig-parameters-abcd1234.</p>
+</li>
+<li>
+<p>Edit the config map using the following command:</p>
+<pre class="highlight"><code class="language-bash">kubectl edit configmap &lt;sas-pyconfig-parameters-configmap-name&gt; -n &lt;name-of-namespace&gt;</code></pre>
+
+<p>In this example, <code>sas-pyconfig-parameters-configmap-name</code> is the name of the config map from step 1. Change the value of global.enabled to <code>false</code>.</p>
+</li>
+<li>
+<p>SAS Configurator for Open Source will run during a deployment or update.</p>
+</li>
+</ol>
+<h2 id="140342938567728default-configuration-and-options">Default Configuration and Options</h2>
+<p>The configuration options used by SAS Configurator for Open Source are referenced from the sas-pyconfig-parameters config map. This section describes the options
+available in the config map, their meaning, and default values.</p>
+<p>Configuration options fall into two main categories:</p>
+<ul>
+<li>
+<p>global options</p>
+<p>Options that are applied across or related to all profiles and to the application.</p>
+</li>
+<li>
+<p>profile options</p>
+<p>Options that are specific to a profile.</p>
+</li>
+</ul>
+<p>A profile is synonymous with a specific Python or R installation. You might have many profiles based on various requirements within the environment. The predefined Python profile is named &ldquo;default_py&rdquo;, and the predefined R profile is named &ldquo;default_r&rdquo;. The default profiles are a starting point, and they might or might not fit your specific needs.</p>
+<h3 id="140342938567728global-options">Global Options</h3>
+<p>The options in this section are applicable to all profiles or to the application as a whole.</p>
+<h4 id="140342938567728globalenabled">global.enabled</h4>
+<p>This global option effectively enables or disables the SAS Configurator for Open Source application.</p>
+<p>This option must be changed to <code>true</code> in order to enable SAS Configurator for Open Source to work.</p>
+<p>Default Value: <code>false</code></p>
+<h4 id="140342938567728globalpython_enabled">global.python_enabled</h4>
+<p>This global option effectively enables or disables Python profile builds.</p>
+<p>This option must be changed to <code>true</code> in order to enable Python to build.</p>
+<p>Default Value: <code>false</code></p>
+<h4 id="140342938567728globalr_enabled">global.r_enabled</h4>
+<p>This global option effectively enables or disables R profile builds.</p>
+<p>This option must be changed to <code>true</code> in order to enable R to build.</p>
+<p>Default Value: <code>false</code></p>
+<h4 id="140342938567728globalstatus">global.status</h4>
+<p>This global option indicates the status of the SAS Configurator for Open Source job and is updated dynamically as conditions within the application change. Values could be <code>uninitialized</code>, <code>pending</code>, <code>error</code>, or <code>complete</code>. All of these values are self-explanatory.</p>
+<p>There is no need to make changes to the value of this option because it is dynamic and is updated by the application.</p>
+<p>Default Value: <code>uninitialized</code></p>
+<h4 id="140342938567728globalpvc">global.pvc</h4>
+<p>This global option specifies the mount point within the SAS Configurator for Open Source job pod. This is the location of PVC in the job pod and is the installation location of Python and R profiles.</p>
+<p>There should be no need to change this value because the PVC is created by the SAS Configurator for Open Source application. If this value is changed, then the corresponding mount point of the PVC must be changed within the SAS Configurator for Open Source application pod.</p>
+<p>Default Value: <code>/opt/sas/viya/home/sas-pyconfig</code></p>
+<h4 id="140342938567728globalpython_profiles">global.python_profiles</h4>
+<p>This global option lists the Python profiles that will be configured by the SAS Configurator for Open Source. The list is space-delimited, with each profile corresponding to a list of profile-specific options.</p>
+<p>If you are creating your own profile, change this value. A profile name can contain only alphanumeric characters with no spaces and should be descriptive. It should also be unique in the list of Python and R profiles. The profile name is used as the name for the symbolic link in update operations and will appear in the top level of the mount point configured by <code>global.pvc</code>.</p>
+<p>For example, a profile name for Python version 3.6 may be python36. A profile for Python version 3.6 with no SASPy package may be called python36nosaspy. If you are continuing to use the default profile and you are adding one called python36, the value for this option would be <code>default python36</code>.</p>
+<p>Default Value: <code>default_py</code></p>
+<h4 id="140342938567728globalr_profiles">global.r_profiles</h4>
+<p>This global option lists the R profiles that will be configured by the SAS Configurator for Open Source. The list is space-delimited, with each profile corresponding to a list of profile-specific options.</p>
+<p>If you are creating your own profile, change this value. A profile name can contain only alphanumeric characters with no spaces and should be descriptive. It should also be unique in the list of Python and R profiles. The profile name is used as the name for the symbolic link in update operations and will appear in the top level of the mount point configured by <code>global.pvc</code>.</p>
+<p>For example, a profile name for R version 4.2.0 may be r420. A profile for R version 4.2.0 with no httr package may be called r420nohttr. If you are continuing to use the default profile and you are adding one called r420nohttr, the value for this option would be <code>default r420nohttr</code>.</p>
+<p>Default Value: <code>default_r</code></p>
+<h3 id="140342938567728profile-options">Profile Options</h3>
+<p>The options in this section are per-profile configuration options that must exist for each profile name in the list of global.profiles. When it is time to build the profiles that are defined in <code>global.profiles</code>, each of these options are referenced by profile name and specific option in the format <code>&lt;profile-name&gt;.&lt;option-name&gt;</code>.</p>
+<h4 id="140342938567728profile-nameconfigure_opts-for-python"><code>&lt;profile-name&gt;.configure_opts</code> for Python</h4>
+<p>These options are passed to the configure command that is used as part of the build of the Python process.</p>
+<p>Unless you are experimenting, this value should not change. At minimum, SAS strongly recommends that <code>--enable-optimizations</code> remain in the list of configure options. The values that can be used in this option are the same as the options that are used on the command line for configure.</p>
+<p>Default Value: <code>--enable-optimizations</code></p>
+<h4 id="140342938567728profile-namepip_install_opts-for-python"><code>&lt;profile-name&gt;.pip_install_opts</code> for Python</h4>
+<p>The options in this section are per-profile pip install options that must exist for each profile name in the list of global.profiles. Valid options can be added but the default value must remain in the list of options.</p>
+<p>Default Value: <code>--force-reinstall</code></p>
+<h4 id="140342938567728profile-namepip_r_profile-for-python"><code>&lt;profile-name&gt;.pip_r_profile</code> for Python</h4>
+<p>The value of this option must be a configured R profile name that exists in the global.r_profiles option. The R profile configured as the value for this option is referenced by this Python profile to build packages associated with R.</p>
+<p>Default Value: <code>default_r</code></p>
+<h4 id="140342938567728profile-nameconfigure_opts-for-r"><code>&lt;profile-name&gt;.configure_opts</code> for R</h4>
+<p>These options are passed to the configure command that is used as part of the build of the R process.</p>
+<p>The options &ndash;with-blas, &ndash;with-lapack, and &ndash;enable-BLAS-shlib are required for proper execution of R with the SAS Viya platform and must always be included in the list.</p>
+<p>Default Value: <code>--enable-memory-profiling --enable-R-shlib --with-blas --with-lapack --with-readline=no --with-x=no --enable-BLAS-shlib</code></p>
+<h4 id="140342938567728profile-namecflags"><code>&lt;profile-name&gt;.cflags</code></h4>
+<p>This option is passed to any command that needs <code>CFLAGS</code> set. Typically this option is used as part of the Python and R configure/build process.</p>
+<p>Unless you are experimenting, this value should not change. At minimum, the value <code>-fPIC</code> must remain in the list of <code>CFLAG</code> options.</p>
+<p>Default Value: <code>-fPIC</code></p>
+<h4 id="140342938567728profile-namepip_install_packages-for-python"><code>&lt;profile-name&gt;.pip_install_packages</code> for Python</h4>
+<p>A space-separated list of packages that will be installed by pip. This is not a definitive list because a number of the packages in the default list have dependencies that are installed in order to satisfy their build and install requirements.</p>
+<p>You can add and subtract packages in this list as desired. Specific versions of packages can be supplied using the <code>&lt;package_name&gt;==x.y.z</code> format described in <a href="https://peps.python.org/pep-0440/">PEP-440</a></p>
+<p>The use of SSH/SCP is not a supported option for specifying packages. An example of using SSH/SCP is an entry in the format of git+ssh://user@repo. </p>
+<p>Default Value:
+<code>Prophet sas_kernel matplotlib sasoptpy sas-esppy NeuralProphet scipy Flask XGBoost TensorFlow pybase64 scikit-learn statsmodels sympy mlxtend Skl2onnx nbeats-pytorch ESRNN onnxruntime opencv-python zipfile38 json2 pyenchant nltk spacy gensim pyarrow hnswlib==0.7.0 sas-ipc-queue great-expectations==0.16.8</code></p>
+<h4 id="140342938567728profile-namepip_r_packages-for-python"><code>&lt;profile-name&gt;.pip_r_packages</code> for Python</h4>
+<p>A space-separated list of R dependent packages that will be installed by pip if R is enabled.</p>
+<p>Default Value: &ldquo;rpy2==3.5.12&rdquo;</p>
+<h4 id="140342938567728profile-namepackages-for-r"><code>&lt;profile-name&gt;.packages</code> for R</h4>
+<p>A space-separated list of packages that will be installed for R. This is not a definitive list because a number of the packages in the default list have dependencies that are installed in order to satisfy their build and install requirements.</p>
+<p>You can add and subtract packages in this list as desired.</p>
+<p>The install_github and githubinstall functions are not supported and cannot be used to install R packages.</p>
+<p>Default Value:
+<code>dplyr jsonlite httr tidyverse randomForest xgboost forecast</code></p>
+<h4 id="140342938567728profile-namepython_signer-for-python"><code>&lt;profile-name&gt;.python_signer</code> for Python</h4>
+<p>The location of the signer&rsquo;s key. This key is provided by the signer of the source package you are downloading and used to verify the Python source is authentic. The value can change across versions of Python because the signer between versions can be different.</p>
+<p>Default Value: <code>https://keybase.io/ambv/pgp_keys.asc</code></p>
+<h4 id="140342938567728profile-namepython_signature-for-python"><code>&lt;profile-name&gt;.python_signature</code> for Python</h4>
+<p>The location of the signature file for the Python tarball. This value is used in conjunction with the signer&rsquo;s key to validate the integrity of the Python source code that is downloaded. The value for this property will change when a different source tarball is used.</p>
+<p>Default Value: <code>https://www.python.org/ftp/python/3.9.16/Python-3.9.16.tgz.asc</code></p>
+<h4 id="140342938567728profile-namepython_tarball-for-python"><code>&lt;profile-name&gt;.python_tarball</code> for Python</h4>
+<p>The location of the Python tarball. This is Python source code that is built and installed into the PVC.</p>
+<p>Default Value: <code>https://www.python.org/ftp/python/3.9.16/Python-3.9.16.tgz</code></p>
+<h4 id="140342938567728profile-namer_tarball-for-r"><code>&lt;profile-name&gt;.r_tarball</code> for R</h4>
+<p>The location of the R tarball. This is R source code that is built and installed into the PVC.</p>
+<p>Default Value: <code>https://cloud.r-project.org/src/base/R-4/R-4.2.3.tar.gz</code></p>
+<h2 id="140342938567728example-patch-file-1">Example Patch File 1</h2>
+<p>This file contains the default profiles only.</p>
+<pre class="highlight"><code class="language-yaml">apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: sas-pyconfig-custom-parameters
+patch: |-
+  - op: replace 
+    path: /data/global.enabled
+    value: "false"
+  - op: replace 
+    path: /data/global.python_enabled
+    value: "false"
+  - op: replace 
+    path: /data/global.r_enabled
+    value: "false"
+  - op: replace
+    path: /data/global.pvc
+    value: "/opt/sas/viya/home/sas-pyconfig"
+  - op: replace
+    path: /data/global.python_profiles
+    value: "default_py"
+  - op: replace
+    path: /data/global.r_profiles
+    value: "default_r"
+  - op: replace
+    path: /data/default_py.configure_opts
+    value: "--enable-optimizations"
+  - op: replace
+    path: /data/default_r.configure_opts
+    value: "--enable-memory-profiling --enable-R-shlib --with-blas --with-lapack --with-readline=no --with-x=no"
+  - op: replace
+    path: /data/default_py.cflags
+    value: "-fPIC"
+  - op: replace
+    path: /data/default_r.cflags
+    value: "-fPIC"
+  - op: replace
+    path: /data/default_py.pip_install_packages
+    value: "Prophet sas_kernel matplotlib sasoptpy sas-esppy NeuralProphet scipy Flask XGBoost TensorFlow pybase64 scikit-learn statsmodels sympy mlxtend Skl2onnx nbeats-pytorch ESRNN onnxruntime opencv-python zipfile38 json2 pyenchant nltk spacy gensim pyarrow hnswlib==0.7.0 sas-ipc-queue great-expectations==0.16.8"
+  - op: replace
+    path: /data/default_py.pip_r_packages
+    value: "rpy2==3.5.12"
+  - op: replace
+    path: /data/default_py.python_signer
+    value: https://keybase.io/ambv/pgp_keys.asc
+  - op: replace
+    path: /data/default_py.python_signature
+    value: https://www.python.org/ftp/python/3.9.16/Python-3.9.16.tgz.asc
+  - op: replace
+    path: /data/default_py.python_tarball
+    value: https://www.python.org/ftp/python/3.9.16/Python-3.9.16.tgz
+  - op: replace
+    path: /data/default_r.r_tarball
+    value: https://cloud.r-project.org/src/base/R-4/R-4.2.3.tar.gz
+  - op: replace
+    path: /data/default_r.packages
+    value: "dplyr jsonlite httr tidyverse randomForest xgboost forecast"
+target:
+  version: v1
+  kind: ConfigMap
+  name: sas-pyconfig-parameters</code></pre>
+
+<h2 id="140342938567728example-patch-file-2">Example Patch File 2</h2>
+<p>This file adds a Python profile called &ldquo;myprofile&rdquo; to the list of global.profiles and creates profile options for &ldquo;myprofile&rdquo;. Note that the default Python profile is still listed and will also be built.</p>
+<pre class="highlight"><code class="language-yaml">apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: sas-pyconfig-custom-parameters
+patch: |-
+  - op: replace
+    path: /data/global.enabled
+    value: "true"
+  - op: replace
+    path: /data/global.python_profiles
+    value: "default myprofile"
+  - op: add
+    path: /data/myprofile.configure_opts
+    value: "--enable-optimizations"
+  - op: add
+    path: /data/myprofile.cflags
+    value: "-fPIC"
+  - op: add
+    path: /data/myprofile.pip_install_packages
+    value: "Prophet sas_kernel matplotlib sasoptpy sas-esppy NeuralProphet scipy Flask XGBoost TensorFlow pybase64 scikit-learn statsmodels sympy mlxtend Skl2onnx nbeats-pytorch ESRNN onnxruntime opencv-python zipfile38 json2 pyenchant nltk spacy gensim pyarrow hnswlib==0.7.0 sas-ipc-queue great-expectations==0.16.8"
+  - op: replace
+    path: /data/default_py.pip_r_packages
+    value: "rpy2==3.5.12"
+  - op: add
+    path: /data/myprofile.python_signer
+    value: https://keybase.io/ambv/pgp_keys.asc
+  - op: add
+    path: /data/myprofile.python_signature
+    value: https://www.python.org/ftp/python/3.9.16/Python-3.9.16.tgz.asc
+  - op: add
+    path: /data/myprofile.python_tarball
+    value: https://www.python.org/ftp/python/3.9.16/Python-3.9.16.tgz
+target:
+  version: v1
+  kind: ConfigMap
+  name: sas-pyconfig-parameters</code></pre>
+    </body>
+</html>

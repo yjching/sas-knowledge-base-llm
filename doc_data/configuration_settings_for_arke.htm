@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for Arke</title>
+    </head>
+    <body>
+        <h1 id="140342945666912configuration-settings-for-arke">Configuration Settings for Arke</h1>
+<h2 id="140342945666912overview">Overview</h2>
+<p>Arke is a message broker proxy that sits between all services and RabbitMQ.
+This README file describes the settings available for deploying Arke.</p>
+<h2 id="140342945666912installation">Installation</h2>
+<p>Based on the following description of the available example files, determine if you
+want to use any example file in your deployment. If you do, copy the example
+file and place it in your site-config directory.</p>
+<p>Each file has information about its content. The variables in the file are set
+off by curly braces and spaces, such as {{ MEMORY-LIMIT }}. Replace the
+entire variable string, including the braces, with the value you want to use.</p>
+<p>After you have edited the file, add a reference to it in the transformers block
+of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an
+example using the Arke transformers:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/arke/arke-modify-cpu.yaml
+- site-config/arke/arke-modify-memory.yaml
+- site-config/arke/arke-modify-hpa-replicas.yaml</code></pre>
+
+<h2 id="140342945666912examples">Examples</h2>
+<p>The example files are located at <code>$deploy/sas-bases/examples/arke</code>.
+The following list contains a description of each example file for Arke settings
+and the file names.</p>
+<ul>
+<li>modify the resource allocation for CPU (arke-modify-cpu.yaml)</li>
+<li>modify the resource allocation for RAM (arke-modify-memory.yaml)</li>
+<li>modify the HorizontalPodAutoscaler replicas (arke-modify-hpa-replicas.yaml)</li>
+</ul>
+    </body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuring Ingress for Cross-Site Cookies</title>
+    </head>
+    <body>
+        <h1 id="140342937668672configuring-ingress-for-cross-site-cookies">Configuring Ingress for Cross-Site Cookies</h1>
+<h2 id="140342937668672overview">Overview</h2>
+<p>When you configure the SAS Viya platform to enable cross-site cookies via the <code>sas.commons.web.security.cookies.sameSite</code> configuration property, you must also update the ingress configuration so that cookies managed by the ingress controller have the same settings. Ingress or Route annotations for same-site cookie settings are applied by adding the appropriate transformer component to your kustomization.yaml.</p>
+<h2 id="140342937668672installation">Installation</h2>
+<p>Add the <code>samesite-none</code> transformer component to the components block of the base kustomization.yaml in the $deploy directory.</p>
+<p>Example:
+<pre class="highlight"><code class="language-yaml">components:
+...
+- sas-bases/components/security/web/samesite-none</code></pre></p>
+    </body>
+</html>

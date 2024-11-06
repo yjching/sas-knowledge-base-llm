@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuring an Analytic Store for SAS Event Stream Processing Studio</title>
+    </head>
+    <body>
+        <h1 id="140342937847072configuring-an-analytic-store-for-sas-event-stream-processing-studio">Configuring an Analytic Store for SAS Event Stream Processing Studio</h1>
+<h2 id="140342937847072overview">Overview</h2>
+<p>To configure SAS Event Stream Processing Studio to use analytic store (ASTORE)
+files inside the application&rsquo;s container, a volume mount with a PersistentVolumeClaim (PVC)
+of sas-microanalytic-score-astores is required in the deployment.</p>
+<h2 id="140342937847072prerequisites">Prerequisites</h2>
+<p>Before proceeding, ensure that a PVC is defined by the SAS Micro Analytic Service Analytic Store
+Configuration for the sas-microanalytic-score service.</p>
+<p>Consult the $deploy/sas-bases/examples/sas-microanalytic-score/astores/README.md file.</p>
+<h2 id="140342937847072installation">Installation</h2>
+<p>In the base kustomization.yaml file in the $deploy directory, add
+sas-bases/overlays/sas-event-stream-processing-studio-app/astores/astores-transformer.yaml
+to the transformers block. The reference should look like this:</p>
+<pre class="highlight"><code>...
+transformers:
+...
+- sas-bases/overlays/sas-event-stream-processing-studio-app/astores/astores-transformer.yaml
+...</code></pre>
+
+<p>After the base kustomization.yaml file is modified, deploy the software using
+the commands described in <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform Deployment Guide</a>.</p>
+    </body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Single Replica Scaling the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937512736single-replica-scaling-the-sas-viya-platform">Single Replica Scaling the SAS Viya Platform</h1>
+<h2 id="140342937512736overview">Overview</h2>
+<p>The SAS Viya platform deploys stateful components in a High Availability configuration by
+default. This feature requires additional resources to run and can be disabled if it is not needed.
+Do not perform these steps on an environment that has already been configured.</p>
+<p>This feature triggers outages during updates as the single replica components update.</p>
+<ul>
+<li>RabbitMQ</li>
+<li>Consul</li>
+<li>internal instances of PostgreSQL</li>
+</ul>
+<h2 id="140342937512736installation">Installation</h2>
+<p>A series of kustomize transformers modifies the appropriate SAS Viya platform
+deployment components to a single replica mode.</p>
+<p>Add <code>sas-bases/overlays/scaling/single-replica/transformer.yaml</code> to the
+transformers block in your base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/scaling/single-replica/transformer.yaml</code></pre>
+
+<p>To apply the change, run <code>kustomize build -o site.yaml</code></p>
+    </body>
+</html>

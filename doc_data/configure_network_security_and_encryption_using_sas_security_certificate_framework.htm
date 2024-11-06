@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure Network Security and Encryption Using SAS Security Certificate Framework</title>
+    </head>
+    <body>
+        <h1 id="140342938049504configure-network-security-and-encryption-using-sas-security-certificate-framework">Configure Network Security and Encryption Using SAS Security Certificate Framework</h1>
+<ul>
+<li><a href="#140342938049504prerequisites">Prerequisites</a></li>
+<li><a href="#140342938049504configuring-the-certificate-generator">Configuring the Certificate Generator</a><ul>
+<li><a href="#140342938049504using-the-openssl-certificate-generator">Using the openssl Certificate Generator</a></li>
+<li><a href="#140342938049504using-the-cert-manager-certificate-generator">Using the cert-manager Certificate Generator</a><ul>
+<li><a href="#140342938049504configure-the-sas-viya-platform-to-use-cert-manager">Configure the SAS Viya Platform to Use cert-manager</a></li>
+<li><a href="#140342938049504configure-cert-manager-issuers-to-support-the-sas-viya-platform">Configure cert-manager Issuers to Support the SAS Viya Platform</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#140342938049504configuring-tls-for-the-ingress-controller">Configuring TLS for the Ingress Controller</a><ul>
+<li><a href="#140342938049504using-an-it-provided-ingress-certificate-on-your-ingress-controller">Using an IT-Provided Ingress Certificate on Your Ingress Controller</a></li>
+<li><a href="#140342938049504using-a-provisional-ingress-controller-certificate">Using a Provisional Ingress Controller Certificate</a><ul>
+<li><a href="#140342938049504using-the-openssl-certificate-generator-to-generate-the-ingress-controller-certificate">Using the openssl Certificate Generator to Generate the Ingress Controller Certificate</a></li>
+<li><a href="#140342938049504using-the-cert-manager-certificate-generator-to-generate-the-ingress-controller-certificate">Using the cert-manager Certificate Generator to Generate the Ingress Controller Certificate</a><ul>
+<li><a href="#140342938049504using-the-cert-manager-certificate-generator-to-generate-the-ingress-nginx-certificate">Using the cert-manager Certificate Generator to Generate the ingress-nginx Certificate</a></li>
+<li><a href="#140342938049504using-the-cert-manager-certificate-generator-to-generate-the-openshift-ingress-operator-certificates">Using the cert-manager Certificate Generator to Generate the OpenShift Ingress Operator Certificates</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#140342938049504selecting-kustomize-components-to-enable-tls-modes">Selecting kustomize Components to Enable TLS Modes</a><ul>
+<li><a href="#140342938049504components-to-enable-full-stack-tls-mode">Components to Enable Full-Stack TLS Mode</a><ul>
+<li><a href="#140342938049504components-to-enable-full-stack-tls-mode-with-ingress-nginx">Components to Enable Full-Stack TLS Mode with ingress-nginx</a></li>
+<li><a href="#140342938049504components-to-enable-full-stack-tls-mode-with-openshift-ingress-operator">Components to Enable Full-Stack TLS Mode with OpenShift Ingress Operator</a></li>
+</ul>
+</li>
+<li><a href="#140342938049504components-to-enable-front-door-tls-mode">Components to Enable Front-Door TLS Mode</a><ul>
+<li><a href="#140342938049504components-to-enable-front-door-tls-mode-with-ingress-nginx">Components to Enable Front-Door TLS Mode with ingress-nginx</a></li>
+<li><a href="#140342938049504components-to-enable-front-door-tls-mode-with-openshift-ingress-operator">Components to Enable Front-Door TLS Mode with OpenShift Ingress Operator</a></li>
+</ul>
+</li>
+<li><a href="#140342938049504components-to-enable-front-door-tls-mode-for-cas-and-sasconnect-spawner">Components to Enable Front-Door TLS Mode for CAS and SAS/CONNECT Spawner</a></li>
+<li><a href="#140342938049504components-to-enable-full-stack-tls-mode-for-all-servers">Components to Enable Full-Stack TLS Mode for All Servers</a></li>
+</ul>
+</li>
+<li><a href="#140342938049504configuring-certificate-attributes">Configuring Certificate Attributes</a></li>
+<li><a href="#140342938049504incorporating-additional-ca-certificates">Incorporating Additional CA Certificates</a><ul>
+<li><a href="#140342938049504incorporating-additional-ca-certificates-into-the-sas-viya-platform-deployment-in-full-stack-or-front-door-tls-mode">Incorporating Additional CA Certificates into the SAS Viya Platform Deployment in Full-stack or Front-door TLS Mode</a></li>
+<li><a href="#140342938049504incorporating-additional-ca-certificates-into-the-sas-viya-platform-deployment-in-no-tls-mode">Incorporating Additional CA Certificates into the SAS Viya Platform Deployment in &ldquo;No TLS&rdquo; Mode</a></li>
+</ul>
+</li>
+<li><a href="#140342938049504example-kustomizationyaml-files-for-ingress-nginx-with-the-cert-manager-certificate-generator">Example kustomization.yaml Files for ingress-nginx with the cert-manager Certificate Generator</a><ul>
+<li><a href="#140342938049504full-stack-tls-with-cert-manager-certificate-generator-and-cert-manager-generated-ingress-certificates">Full-stack TLS with cert-manager Certificate Generator and cert-manager-Generated Ingress Certificates</a></li>
+<li><a href="#140342938049504full-stack-tls-with-cert-manager-certificate-generator-and-customer-provided-ingress-certificates">Full-stack TLS with cert-manager Certificate Generator and Customer-Provided Ingress Certificates</a></li>
+<li><a href="#140342938049504front-door-tls-with-cert-manager-certificate-generator-and-cert-manager-generated-ingress-certificates">Front-door TLS with cert-manager Certificate Generator and cert-manager-Generated Ingress Certificates</a></li>
+<li><a href="#140342938049504front-door-tls-with-cert-manager-certificate-generator-and-customer-provided-ingress-certificates">Front-door TLS with cert-manager Certificate Generator and Customer-Provided Ingress Certificates</a></li>
+</ul>
+</li>
+<li><a href="#140342938049504example-kustomizationyaml-files-for-ingress-nginx-with-the-openssl-certificate-generator">Example kustomization.yaml Files for ingress-nginx with the openssl Certificate Generator</a><ul>
+<li><a href="#140342938049504full-stack-tls-with-openssl-certificate-generator-and-openssl-generated-ingress-certificates">Full-stack TLS with openssl Certificate Generator and openssl-generated Ingress Certificates</a></li>
+<li><a href="#140342938049504full-stack-tls-with-openssl-certificate-generator-and-customer-provided-ingress-certificates">Full-stack TLS with openssl Certificate Generator and Customer-Provided Ingress Certificates</a></li>
+<li><a href="#140342938049504front-door-tls-with-openssl-certificate-generator-and-customer-provided-ingress-certificates">Front-door TLS with openssl Certificate Generator and Customer-Provided Ingress Certificates</a></li>
+</ul>
+</li>
+<li><a href="#140342938049504example-kustomizationyaml-files-for-the-openshift-ingress-controller-with-the-cert-manager-certificate-generator">Example kustomization.yaml Files for the OpenShift Ingress Controller with the cert-manager Certificate Generator</a><ul>
+<li><a href="#140342938049504full-stack-tls-with-cert-manager-certificate-generator-and-customer-provided-openshift-ingress-certificates">Full-stack TLS with cert-manager Certificate Generator and Customer-Provided OpenShift Ingress Certificates</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="140342938049504prerequisites">Prerequisites</h2>
+<p>Before reading this document, you should be familiar with the content in <a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calencryptmotion&amp;docsetTarget=titlepage.htm">SAS® Viya® Platform Encryption: Data in Motion</a>. In addition, you should have made the following decisions:</p>
+<ul>
+<li>which certificate generator to use</li>
+<li>whether you provide your own ingress certificate or use an ingress certificate generated by the selected certificate generator</li>
+<li>which TLS mode to use: Full-stack, Front-door, or No TLS</li>
+</ul>
+<h2 id="140342938049504configuring-the-certificate-generator">Configuring the Certificate Generator</h2>
+<h3 id="140342938049504using-the-openssl-certificate-generator">Using the openssl Certificate Generator</h3>
+<p>Because the openssl certificate generator is the default, the absence of references to a certificate generator in your site-config directory will result in openssl being used.  No additional steps are required.</p>
+<h3 id="140342938049504using-the-cert-manager-certificate-generator">Using the cert-manager Certificate Generator</h3>
+<p>For information about supported versions of cert-manager, see <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=itopssr&amp;docsetTarget=n1ika6zxghgsoqn1mq4bck9dx695.htm#n0mhb21pl07ohgn1hj4zsgfeq8hj">Kubernetes Cluster Requirements</a>.</p>
+<p>In order to use the cert-manager certificate generator, it must be correctly configured prior to deploying the SAS Viya platform.</p>
+<h4 id="140342938049504configure-the-sas-viya-platform-to-use-cert-manager">Configure the SAS Viya Platform to Use cert-manager</h4>
+<ol>
+<li>
+<p>Create a configMap generator to customize the sas-certframe settings.  The steps to create these customizations are located in <a href="#140342938049504configuring-certificate-attributes">Configuring Certificate Attributes</a>.</p>
+</li>
+<li>
+<p>Set the <code>SAS_CERTIFICATE_GENERATOR</code> environment variable to <code>cert-manager</code> in the file you created in step 1. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">---
+apiVersion: builtin
+kind: ConfigMapGenerator
+metadata:
+  name: sas-certframe-user-config
+behavior: merge
+literals:
+- SAS_CERTIFICATE_GENERATOR=cert-manager</code></pre>
+
+</li>
+</ol>
+<h4 id="140342938049504configure-cert-manager-issuers-to-support-the-sas-viya-platform">Configure cert-manager Issuers to Support the SAS Viya Platform</h4>
+<p>Cert-manager uses a CA Issuer to create the server identity certificates used by the SAS Viya platform.  The cert-manager CA issuer requires an issuing CA certificate.  The issuing CA for the issuer is stored in a secret named sas-viya-ca-certificate-secret. Add a reference to the cert-manager issuer to the resources block of the base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- sas-bases/overlays/cert-manager-issuer</code></pre>
+
+<h2 id="140342938049504configuring-tls-for-the-ingress-controller">Configuring TLS for the Ingress Controller</h2>
+<h3 id="140342938049504using-an-it-provided-ingress-certificate-on-your-ingress-controller">Using an IT-Provided Ingress Certificate on Your Ingress Controller</h3>
+<p>Copy this example file to your <code>/site-config</code> directory, and modify it as described in the comments:</p>
+<pre class="highlight"><code class="language-bash">cd $deploy
+cp sas-bases/examples/security/customer-provided-ingress-certificate.yaml site-config/security
+vi site-config/security/customer-provided-ingress-certificate.yaml</code></pre>
+
+<p>When you have completed your modifications, add the path to this file to the <code>generators</code> block of your <code>$deploy/kustomization.yaml</code> file (see the examples below to add a
+<code>generators:</code> block if one does not already exist).</p>
+<pre class="highlight"><code class="language-yaml">generators:
+- site-config/security/customer-provided-ingress-certificate.yaml # configures the ingress to use a secret that contains customer-provided certificate and key</code></pre>
+
+<h3 id="140342938049504using-a-provisional-ingress-controller-certificate">Using a Provisional Ingress Controller Certificate</h3>
+<h4 id="140342938049504using-the-openssl-certificate-generator-to-generate-the-ingress-controller-certificate">Using the openssl Certificate Generator to Generate the Ingress Controller Certificate</h4>
+<p>An example of the code that creates an ingress controller certificate and stores it in a secret is provided in the following file:</p>
+<p><code>sas-bases/examples/security/openssl-generated-ingress-certificate.yaml</code></p>
+<p>Copy the example to your <code>/site-config</code> directory and modify it as described in the comments that are included in the code.</p>
+<pre class="highlight"><code class="language-bash">cd $deploy
+cp sas-bases/examples/security/openssl-generated-ingress-certificate.yaml site-config/security
+vi site-config/security/openssl-generated-ingress-certificate.yaml</code></pre>
+
+<p>When you have completed your modifications, add the path to this file to the resources block of your base kustomization.yaml file:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- site-config/security/openssl-generated-ingress-certificate.yaml # causes openssl to generate an ingress certificate and key and store them in a secret</code></pre>
+
+<h4 id="140342938049504using-the-cert-manager-certificate-generator-to-generate-the-ingress-controller-certificate">Using the cert-manager Certificate Generator to Generate the Ingress Controller Certificate</h4>
+<h5 id="140342938049504using-the-cert-manager-certificate-generator-to-generate-the-ingress-nginx-certificate">Using the cert-manager Certificate Generator to Generate the ingress-nginx Certificate</h5>
+<p>To use cert-manager to generate the ingress certificate, add the following path to the transformers block of your base kustomization.yaml file:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- sas-bases/overlays/cert-manager-provided-ingress-certificate/ingress-annotation-transformer.yaml # causes cert-manager to generate an ingress certificate and key and store them in a secret</code></pre>
+
+<h5 id="140342938049504using-the-cert-manager-certificate-generator-to-generate-the-openshift-ingress-operator-certificates">Using the cert-manager Certificate Generator to Generate the OpenShift Ingress Operator Certificates</h5>
+<p>An example of the code that configures cert-manager to generate the certificate and secret is provided in the following file:</p>
+<p><code>sas-bases/examples/security/cert-manager-pre-created-ingress-certificate.yaml</code></p>
+<p>Copy the example to your <code>/site-config</code> directory and modify it as described in the comments that are included in the code.  Note that you will need to know the network DNS alias of your Kubernetes ingress controller.</p>
+<pre class="highlight"><code class="language-bash">cd $deploy
+cp sas-bases/examples/security/cert-manager-pre-created-ingress-certificate.yaml site-config/security
+vi site-config/security/cert-manager-pre-created-ingress-certificate.yaml</code></pre>
+
+<p>When you have completed your modifications, add the path to this file to the resources block of your base kustomization.yaml file:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- site-config/security/cert-manager-pre-created-ingress-certificate.yaml # causes cert-manager to generate an ingress certificate and key and store them in a secret</code></pre>
+
+<h2 id="140342938049504selecting-kustomize-components-to-enable-tls-modes">Selecting kustomize Components to Enable TLS Modes</h2>
+<p>Ensure that any of the following TLS components that are added to the <code>components</code> block of the base kustomization.yaml file come <strong>after</strong> any other SAS-provided components, but <strong>before</strong> any user-provided components. This ensures that TLS customizations are applied to the fully-formed manifests of individual SAS offerings without conflicting with any customizations applied by the user.</p>
+<h3 id="140342938049504components-to-enable-full-stack-tls-mode">Components to Enable Full-Stack TLS Mode</h3>
+<p>In Full-stack TLS mode, the ingress controller must be configured to decrypt incoming network traffic and re-encrypt traffic before forwarding it to the back-end SAS servers. Network traffic between SAS servers is encrypted in this mode. To enable Full-Stack TLS, include the customization that corresponds to your ingress controller in the <code>components</code> block of the base kustomization.yaml file:</p>
+<h4 id="140342938049504components-to-enable-full-stack-tls-mode-with-ingress-nginx">Components to Enable Full-Stack TLS Mode with ingress-nginx</h4>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/full-stack-tls</code></pre>
+
+<h4 id="140342938049504components-to-enable-full-stack-tls-mode-with-openshift-ingress-operator">Components to Enable Full-Stack TLS Mode with OpenShift Ingress Operator</h4>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/security/network/route.openshift.io/route/full-stack-tls</code></pre>
+
+<h3 id="140342938049504components-to-enable-front-door-tls-mode">Components to Enable Front-Door TLS Mode</h3>
+<h4 id="140342938049504components-to-enable-front-door-tls-mode-with-ingress-nginx">Components to Enable Front-Door TLS Mode with ingress-nginx</h4>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/front-door-tls</code></pre>
+
+<h4 id="140342938049504components-to-enable-front-door-tls-mode-with-openshift-ingress-operator">Components to Enable Front-Door TLS Mode with OpenShift Ingress Operator</h4>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/security/network/route.openshift.io/route/front-door-tls</code></pre>
+
+<h3 id="140342938049504components-to-enable-front-door-tls-mode-for-cas-and-sasconnect-spawner">Components to Enable Front-Door TLS Mode for CAS and SAS/CONNECT Spawner</h3>
+<p>Add this component to your kustomization.yaml to configure the SAS Viya platform for Front-door TLS mode and configure CAS and SAS/CONNECT to encrypt network traffic:</p>
+<p><em><strong>IMPORTANT:</strong></em> Do not add more than one component for SAS servers TLS. The component for each TLS mode must be used by itself.</p>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/security/core/base/front-door-tls  # component to build trust stores for all services and enable back-end TLS for CAS and SAS/CONNECT</code></pre>
+
+<h3 id="140342938049504components-to-enable-full-stack-tls-mode-for-all-servers">Components to Enable Full-Stack TLS Mode for All Servers</h3>
+<p><em><strong>Note:</strong></em> TLS for the ingress controller is required if you are using Full-stack TLS.</p>
+<p><em><strong>IMPORTANT:</strong></em> Do not add more than one TLS component. The component for each TLS mode must be used by itself. Include this customization in the <code>components</code> block of the base kustomization.yaml file:</p>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/security/core/base/full-stack-tls # component to support TLS for back-end servers</code></pre>
+
+<h2 id="140342938049504configuring-certificate-attributes">Configuring Certificate Attributes</h2>
+<p>An example configMap is provided to help you customize configuration settings. To create this configMap with non-default settings, see the comments in the provided example file, <code>$deploy/sas-bases/examples/security/customer-provided-merge-sas-certframe-configmap.yaml</code>:</p>
+<pre class="highlight"><code class="language-bash">cd $deploy
+cp sas-bases/examples/security/customer-provided-merge-sas-certframe-configmap.yaml site-config/security/
+vi site-config/security/customer-provided-merge-sas-certframe-configmap.yaml</code></pre>
+
+<p>When you have completed your updates, add the path to the file to the <code>generators</code> block of your <code>$deploy/kustomization.yaml</code> file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">generators:
+- site-config/security/customer-provided-merge-sas-certframe-configmap.yaml # merges customer-provided configuration settings into the sas-certframe-user-config configmap</code></pre>
+
+<h2 id="140342938049504incorporating-additional-ca-certificates">Incorporating Additional CA Certificates</h2>
+<h3 id="140342938049504incorporating-additional-ca-certificates-into-the-sas-viya-platform-deployment-in-full-stack-or-front-door-tls-mode">Incorporating Additional CA Certificates into the SAS Viya Platform Deployment in Full-stack or Front-door TLS Mode</h3>
+<p>Follow these steps to add your proprietary CA certificates to the SAS Viya platform deployment. The certificate files must be in PEM format, and the path to the files must be relative to the directory that contains the kustomization.yaml file. You might have to maintain several files containing CA certificates and update them over time. SAS recommends creating a separate directory for these files.</p>
+<ol>
+<li>
+<p>Place your CA certificate files in the <code>site-config/security/cacerts</code> directory. Ensure that the user ID that runs the kustomize command has Read access to
+   the files.</p>
+</li>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/security/customer-provided-ca-certificates.yaml</code> into your <code>$deploy/site-config/security</code> directory.</p>
+</li>
+<li>
+<p>Edit the <code>site-config/security/customer-provided-ca-certificates.yaml</code> file and specify the required information.</p>
+<p>Instructions for editing this file are provided as comments in the file.</p>
+</li>
+</ol>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-bash">export deploy=~/deploy
+cd $deploy
+mkdir -p site-config/security/cacerts
+#
+# the following line assumes that your CA Certificates are in a file named /tmp/my_ca_certificates.pem
+#
+cp /tmp/my_ca_certificates.pem site-config/security/cacerts
+cp sas-bases/examples/security/customer-provided-ca-certificates.yaml site-config/security
+vi site-config/security/customer-provided-ca-certificates.yaml</code></pre>
+
+<p>When you have completed your modifications, add the path to this file to the <code>generators</code> block of your <code>$deploy/kustomization.yaml</code> file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">generators:
+- site-config/security/customer-provided-ca-certificates.yaml # generates a configmap that contains CA Certificates</code></pre>
+
+<h3 id="140342938049504incorporating-additional-ca-certificates-into-the-sas-viya-platform-deployment-in-no-tls-mode">Incorporating Additional CA Certificates into the SAS Viya Platform Deployment in &ldquo;No TLS&rdquo; Mode</h3>
+<p>In order to add CA certificates to pod trust bundles, add the following component to the <code>components</code> block of your base kustomization.yaml file:</p>
+<p><em><strong>IMPORTANT:</strong></em> Do not add this component if you have configured Front-door TLS or Full-stack TLS mode.</p>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/security/core/base/truststores-only # component to build trust stores when no TLS is desired</code></pre>
+
+<h2 id="140342938049504example-kustomizationyaml-files-for-ingress-nginx-with-the-cert-manager-certificate-generator">Example kustomization.yaml Files for ingress-nginx with the cert-manager Certificate Generator</h2>
+<h3 id="140342938049504full-stack-tls-with-cert-manager-certificate-generator-and-cert-manager-generated-ingress-certificates">Full-stack TLS with cert-manager Certificate Generator and cert-manager-Generated Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Full-stack TLS with cert-manager certificate generator and cert-Manager generated ingress certificates
+namespace: fullstacktls
+resources:
+- sas-bases/base
+- sas-bases/overlays/cert-manager-issuer
+- sas-bases/overlays/network/networking.k8s.io
+
+components:
+- sas-bases/components/security/core/base/full-stack-tls
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/full-stack-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+- sas-bases/overlays/cert-manager-provided-ingress-certificate/ingress-annotation-transformer.yaml # causes cert-manager to generate the ingress certificate and key and store it in a secret
+
+generators:
+- site-config/security/customer-provided-ca-certificates.yaml # This generator is optional. Include it only if you need to add additional CA Certificates
+- site-config/security/customer-provided-merge-sas-certframe-configmap.yaml # make sure edits to the site-config/security/customer-provided-merge-sas-certframe-configmap.yaml file are in place</code></pre>
+
+<h3 id="140342938049504full-stack-tls-with-cert-manager-certificate-generator-and-customer-provided-ingress-certificates">Full-stack TLS with cert-manager Certificate Generator and Customer-Provided Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Full-stack TLS with cert-manager certificate generator and customer-provided ingress certificates
+namespace: fullstacktls
+resources:
+- sas-bases/base
+- sas-bases/overlays/cert-manager-issuer
+- sas-bases/overlays/network/networking.k8s.io
+
+components:
+- sas-bases/components/security/core/base/full-stack-tls
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/full-stack-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+
+generators:
+- site-config/security/customer-provided-ingress-certificate.yaml
+- site-config/security/customer-provided-ca-certificates.yaml
+- site-config/security/customer-provided-merge-sas-certframe-configmap.yaml # make sure edits to the site-config/security/customer-provided-merge-sas-certframe-configmap.yaml file are in place</code></pre>
+
+<h3 id="140342938049504front-door-tls-with-cert-manager-certificate-generator-and-cert-manager-generated-ingress-certificates">Front-door TLS with cert-manager Certificate Generator and cert-manager-Generated Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Front-door TLS with cert-manager certificate generator and cert-Manager generated ingress certificates
+namespace: frontdoortls
+resources:
+- sas-bases/base
+- sas-bases/overlays/cert-manager-issuer
+- sas-bases/overlays/network/networking.k8s.io
+
+components:
+- sas-bases/components/security/core/base/front-door-tls
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/front-door-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+- sas-bases/overlays/cert-manager-provided-ingress-certificate/ingress-annotation-transformer.yaml # causes cert-manager to generate the ingress certificate and key and store it in a secret
+
+generators:
+- site-config/security/customer-provided-ca-certificates.yaml # This generator is optional. Include it only if you need to add additional CA Certificates
+- site-config/security/customer-provided-merge-sas-certframe-configmap.yaml # make sure edits to the site-config/security/customer-provided-merge-sas-certframe-configmap.yaml file are in place</code></pre>
+
+<h3 id="140342938049504front-door-tls-with-cert-manager-certificate-generator-and-customer-provided-ingress-certificates">Front-door TLS with cert-manager Certificate Generator and Customer-Provided Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Front-door TLS with cert-manager certificate generator and customer-provided ingress certificates
+namespace: frontdoortls
+resources:
+- sas-bases/base
+- sas-bases/overlays/cert-manager-issuer
+- sas-bases/overlays/network/networking.k8s.io
+
+components:
+- sas-bases/components/security/core/base/front-door-tls
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/front-door-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+
+generators:
+- site-config/security/customer-provided-ingress-certificate.yaml
+- site-config/security/customer-provided-ca-certificates.yaml
+- site-config/security/customer-provided-merge-sas-certframe-configmap.yaml # make sure edits to the site-config/security/customer-provided-merge-sas-certframe-configmap.yaml file are in place</code></pre>
+
+<h2 id="140342938049504example-kustomizationyaml-files-for-ingress-nginx-with-the-openssl-certificate-generator">Example kustomization.yaml Files for ingress-nginx with the openssl Certificate Generator</h2>
+<h3 id="140342938049504full-stack-tls-with-openssl-certificate-generator-and-openssl-generated-ingress-certificates">Full-stack TLS with openssl Certificate Generator and openssl-generated Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Full-stack TLS with openssl certificate generator and openssl generated ingress certificates
+namespace: fullstacktls
+resources:
+- sas-bases/base
+- sas-bases/overlays/network/networking.k8s.io
+- site-config/security/openssl-generated-ingress-certificate.yaml
+
+components:
+- sas-bases/components/security/core/base/full-stack-tls
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/full-stack-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+
+generators:
+- site-config/security/customer-provided-ca-certificates.yaml</code></pre>
+
+<h3 id="140342938049504full-stack-tls-with-openssl-certificate-generator-and-customer-provided-ingress-certificates">Full-stack TLS with openssl Certificate Generator and Customer-Provided Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Full-stack TLS with openssl certificate generator and customer-provided ingress certificates
+namespace: fullstacktls
+resources:
+- sas-bases/base
+- sas-bases/overlays/network/networking.k8s.io
+
+components:
+- sas-bases/components/security/core/base/full-stack-tls
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/full-stack-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+
+generators:
+- site-config/security/customer-provided-ingress-certificate.yaml
+- site-config/security/customer-provided-ca-certificates.yaml</code></pre>
+
+<h3 id="140342938049504front-door-tls-with-openssl-certificate-generator-and-customer-provided-ingress-certificates">Front-door TLS with openssl Certificate Generator and Customer-Provided Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Front-door TLS with openssl certificate generator and customer-provided ingress certificates
+namespace: frontdoortls
+resources:
+- sas-bases/base
+- sas-bases/overlays/network/networking.k8s.io
+
+components:
+- sas-bases/components/security/core/base/front-door-tls
+- sas-bases/components/security/network/networking.k8s.io/ingress/nginx.ingress.kubernetes.io/front-door-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+
+generators:
+- site-config/security/customer-provided-ingress-certificate.yaml
+- site-config/security/customer-provided-ca-certificates.yaml</code></pre>
+
+<h2 id="140342938049504example-kustomizationyaml-files-for-the-openshift-ingress-controller-with-the-cert-manager-certificate-generator">Example kustomization.yaml Files for the OpenShift Ingress Controller with the cert-manager Certificate Generator</h2>
+<h3 id="140342938049504full-stack-tls-with-cert-manager-certificate-generator-and-customer-provided-openshift-ingress-certificates">Full-stack TLS with cert-manager Certificate Generator and Customer-Provided OpenShift Ingress Certificates</h3>
+<pre class="highlight"><code class="language-yaml"># Full-stack TLS with cert-manager certificate generator and customer-provided ingress certificates
+namespace: fullstacktls
+resources:
+- sas-bases/base
+- sas-bases/overlays/cert-manager-issuer
+- sas-bases/overlays/network/route.openshift.io
+
+components:
+- sas-bases/components/security/core/base/full-stack-tls
+- sas-bases/components/security/network/route.openshift.io/route/full-stack-tls
+
+transformers:
+- sas-bases/overlays/required/transformers.yaml
+
+generators:
+- site-config/security/customer-provided-ingress-certificate.yaml
+- site-config/security/customer-provided-ca-certificates.yaml
+- site-config/security/customer-provided-merge-sas-certframe-configmap.yaml # make sure edits to the site-config/security/customer-provided-merge-sas-certframe-configmap.yaml file are in place</code></pre>
+    </body>
+</html>

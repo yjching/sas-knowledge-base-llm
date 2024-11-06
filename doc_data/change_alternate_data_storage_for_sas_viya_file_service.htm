@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Change Alternate Data Storage for SAS Viya File Service</title>
+    </head>
+    <body>
+        <h1 id="140342937972160change-alternate-data-storage-for-sas-viya-file-service">Change Alternate Data Storage for SAS Viya File Service</h1>
+<h2 id="140342937972160overview">Overview</h2>
+<p>The SAS Viya File Service uses PostgreSQL to store file metadata and content. However, PostgreSQL is unable to store large files. To overcome this limitation and make SAS Viya File Service scalable, you can choose to store the file content in other data storage, such as Azure Blob Storage. 
+If you choose Azure Blob Storage as the storage database, then the file content is stored in Azure Blob Storage and file metadata remains in PostgreSQL.</p>
+<p>The directory <code>$deploy/sas-bases/overlays/sas-files</code> contains an overlay to customize your SAS Viya deployment to make Azure Blob Storage the database for storing file content. </p>
+<h2 id="140342937972160instructions">Instructions</h2>
+<ol>
+<li>
+<p>Edit the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>) to add the following entries for generating the ConfigMap and adding a ConfigMap reference. </p>
+</li>
+<li>
+<p>In the resources block, add <code>sas-bases/overlays/sas-files</code>. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- sas-bases/overlays/sas-files
+...</code></pre>
+
+</li>
+<li>
+<p>In the transformers block, add <code>sas-bases/overlays/sas-files/file-custom-db-transformer.yaml</code>. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/sas-files/file-custom-db-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Follow the instructions in the &ldquo;Configure SAS Viya File Service for Azure Blob 
+Storage&rdquo; README file to configure SAS Viya File Service. The README file is 
+located at <code>$deploy/sas-bases/examples/azure/blob/README.md</code> (for Markdown format) 
+or at <code>$ deploy/sas-bases/docs/configure_sas_viya_file_service_for_azure_blob_storage.htm</code> 
+(for HTML format).</p>
+</li>
+</ol>
+    </body>
+</html>

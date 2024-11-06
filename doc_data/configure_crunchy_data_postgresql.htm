@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure Crunchy Data PostgreSQL</title>
+    </head>
+    <body>
+        <h1 id="140342938039824configure-crunchy-data-postgresql">Configure Crunchy Data PostgreSQL</h1>
+<h2 id="140342938039824overview">Overview</h2>
+<p>Internally managed instances of PostgreSQL use the <a href="https://github.com/crunchydata">PostgreSQL Operator and Containers</a> provided by <a href="https://www.crunchydata.com/">Crunchy Data</a> behind the scenes to create the PostgreSQL servers.</p>
+<h2 id="140342938039824prerequisites">Prerequisites</h2>
+<p>Before installing any Crunchy Data components, you should know which PostgreSQL servers are required by your SAS Viya platform order.</p>
+<p>Additionally, you should have followed the steps to configure PostgreSQL in the SAS Viya platform described in the &ldquo;Configure PostgreSQL&rdquo; README located at <code>$deploy/sas-bases/examples/postgres/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_postgresql.htm</code> (for HTML format).</p>
+<h2 id="140342938039824installation">Installation</h2>
+<p>You must install the Crunchy Data PostgreSQL Operator in conjunction with specific PostgreSQL servers.</p>
+<p>To install the PostgreSQL Operator, go to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). In the resources block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- sas-bases/overlays/crunchydata/postgres-operator</code></pre>
+
+<p>Additionally, you must add content to the components block based on whether you are deploying Platform PostgreSQL or CDS PostgreSQL.</p>
+<h3 id="140342938039824internal-platform-postgresql">Internal Platform PostgreSQL</h3>
+<p>Go to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). In the components block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/crunchydata/internal-platform-postgres</code></pre>
+
+<p><strong>Note</strong>: The internal-platform-postgres entry should be listed before any entries that do not relate to Crunchy Data.</p>
+<h3 id="140342938039824internal-common-data-store-cds-postgresql">Internal Common Data Store (CDS) PostgreSQL</h3>
+<p>Go to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). In the components block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">components:
+- sas-bases/components/crunchydata/internal-cds-postgres</code></pre>
+
+<p><strong>Note</strong>: The internal-cds-postgres entry should be listed before any entries that do not relate to Crunchy Data.</p>
+<h2 id="140342938039824examples">Examples</h2>
+<p>Crunchy Data supports many PostgreSQL features and configurations. Here are the supported options:</p>
+<ul>
+<li>Automated backups of PostgreSQL data. See the &ldquo;Configuration Settings for PostgreSQL Backups&rdquo; README located at <code>$deploy/sas-bases/examples/crunchydata/backups/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configuration_settings_for_postgresql_backups.htm</code> (for HTML format)</li>
+<li>Resource allocation for PostgreSQL pods. See the &ldquo;Configuration Settings for PostgreSQL Pod Resources&rdquo; README located at <code>$deploy/sas-bases/examples/crunchydata/pod-resources/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configuration_settings_for_postgresql_pod_resources.htm</code> (for HTML format)</li>
+<li>PostgreSQL replicas for high availability. See the &ldquo;Configuration Settings for PostgreSQL Replicas Count&rdquo; README located at <code>$deploy/sas-bases/examples/crunchydata/replicas/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configuration_settings_for_postgresql_replicas_count.htm</code> (for HTML format)</li>
+<li>Kubernetes storage options for PostgreSQL data volumes. See the &ldquo;Configuration Settings for PostgreSQL Storage&rdquo; README located at <code>$deploy/sas-bases/examples/crunchydata/storage/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configuration_settings_for_postgresql_storage.htm</code> (for HTML format)</li>
+<li>PostgreSQL configuration and tuning. See the &ldquo;Configuration Settings for PostgreSQL Database Tuning&rdquo; README located at <code>$deploy/sas-bases/examples/crunchydata/tuning/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configuration_settings_for_postgresql_database_tuning.htm</code> (for HTML format)</li>
+</ul>
+    </body>
+</html>

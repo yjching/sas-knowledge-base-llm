@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Cluster Privileges for SAS Workload Orchestrator Service</title>
+    </head>
+    <body>
+        <h1 id="140342938568400cluster-privileges-for-sas-workload-orchestrator-service">Cluster Privileges for SAS Workload Orchestrator Service</h1>
+<h2 id="140342938568400overview">Overview</h2>
+<p>SAS Workload Orchestrator Service is an advanced scheduler that integrates with SAS Launcher. Adding this overlay allows
+the service account to retrieve a cluster node&rsquo;s &lsquo;allocatable&rsquo; amount of cores and memory, schedule jobs across
+multiple namespaces, and read node labels to sort them into host groups. SAS recommends using this service so that your
+deployment will run optimally.</p>
+<h2 id="140342938568400instructions">Instructions</h2>
+<h3 id="140342938568400enable-the-cluster-role">Enable the Cluster Role</h3>
+<p>The ClusterRole and ClusterRoleBinding are enabled by adding the file to the resources block of the base kustomization.yaml file
+(<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- sas-bases/overlays/sas-workload-orchestrator</code></pre>
+
+<h3 id="140342938568400disable-the-cluster-role">Disable the Cluster Role</h3>
+<p>To disable the ClusterRole and ClusterRoleBinding:</p>
+<ol>
+<li>
+<p>Remove <code>sas-bases/overlays/sas-workload-orchestrator</code> from the resources block of the
+base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). This also ensures that the
+ClusterRole option will not be applied in future Kustomize builds.</p>
+</li>
+<li>
+<p>Perform the following command to remove the ClusterRoleBinding from the namespace:</p>
+</li>
+</ol>
+<pre class="highlight"><code>kubectl delete clusterrolebinding sas-workload-orchestrator-&lt;your namespace&gt;</code></pre>
+
+<ol>
+<li>Perform the following command to remove the ClusterRole from the cluster.</li>
+</ol>
+<pre class="highlight"><code>kubectl delete clusterrole sas-workload-orchestrator</code></pre>
+
+<h2 id="140342938568400build">Build</h2>
+<p>After you configure Kustomize, continue your SAS Viya platform deployment as documented.</p>
+    </body>
+</html>

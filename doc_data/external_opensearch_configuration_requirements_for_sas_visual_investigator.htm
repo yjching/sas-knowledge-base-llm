@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>External OpenSearch Configuration Requirements for SAS Visual Investigator</title>
+    </head>
+    <body>
+        <h1 id="140342937894144external-opensearch-configuration-requirements-for-sas-visual-investigator">External OpenSearch Configuration Requirements for SAS Visual Investigator</h1>
+<p>This README file describes OpenSearch&rsquo;s configuration requirements for SAS Visual Investigator.</p>
+<p><strong>Note:</strong> If your deployment does not include SAS Visual Investigator, this README contains no information that pertains to you.</p>
+<h2 id="140342937894144opensearch-configuration-requirements">OpenSearch Configuration Requirements</h2>
+<p>In the action section inside the config/opensearch.yml file, the destructive_requires_name setting should be set to false.</p>
+<h2 id="140342937894144security-plugin-configuration-requirements">Security Plugin Configuration Requirements</h2>
+<p>In the config.dynamic section inside the config/opensearch-security/config.yml file, the do_not_fail_on_forbidden setting should be set to true.</p>
+<p>In the config.dynamic.authc section inside the config/opensearch-security/config.yml file, the following four authentication domains must be defined in this exact order:</p>
+<ol>
+<li>
+<p>Basic authentication with challenge set to false.</p>
+</li>
+<li>
+<p>OpenID authentication using user_name as subject key.</p>
+</li>
+<li>
+<p>Configure the openid_connect_url to point to SAS Logon&rsquo;s OpenID endpoint.</p>
+</li>
+<li>
+<p>Configure the openid_connect_idp.pemtrustedcas_filepath to point to the certificates needed to connect to SAS Logon.</p>
+</li>
+<li>
+<p>OpenId authentication using client_id as subject key.</p>
+</li>
+<li>
+<p>Configure the openid_connect_url to point to SAS Logon&rsquo;s OpenID endpoint.</p>
+</li>
+<li>
+<p>Configure the openid_connect_idp.pemtrustedcas_filepath to point to the certificates needed to connect to SAS Logon.</p>
+</li>
+<li>
+<p>Basic authentication with challenge set to true.</p>
+</li>
+</ol>
+<h2 id="140342937894144security-plugin-config-example">Security Plugin Config Example</h2>
+<p>For a security config example, see <code>$deploy/sas-bases/examples/configure-elasticsearch/external/config/config.yaml</code>.</p>
+    </body>
+</html>

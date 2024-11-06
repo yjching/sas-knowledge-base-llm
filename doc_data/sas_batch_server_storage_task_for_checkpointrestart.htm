@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>SAS Batch Server Storage Task for Checkpoint/Restart</title>
+    </head>
+    <body>
+        <h1 id="140342937978480sas-batch-server-storage-task-for-checkpointrestart">SAS Batch Server Storage Task for Checkpoint/Restart</h1>
+<h2 id="140342937978480overview">Overview</h2>
+<p>A SAS Batch Server has the ability to restart a SAS job using
+either SAS&rsquo;s data step checkpoint/restart capability or
+SAS&rsquo;s label checkpoint/restart capability.
+For the checkpoint/restart capability to work properly, the checkpoint
+information must be stored on storage that persists across all compute
+nodes in the deployment. When the Batch Server job is restarted, it will have
+access to the checkpoint information no matter what compute node it is started on.</p>
+<p>The checkpoint information is stored in SASWORK, which is allocated in
+the volume named <code>viya</code>. Since a Batch Server is a SAS Viya platform server that
+uses the SAS Programming Run-Time Environment, it is possible that the
+<code>viya</code> volume may be set to ephemeral storage by the
+<code>$deploy/sas-bases/examples/sas-programming-environment/storage/change-viya-volume-storage-class.yaml</code>
+transformers. If that is the case, the Batch Server&rsquo;s <code>viya</code> volume would need
+to be changed to persistent storage without changing any other server&rsquo;s
+storage.</p>
+<p><strong>Note:</strong> For more information about changing the storage for SAS Viya platform servers that use the SAS Programming Run-Time Environment, see the README file at <code>$deploy/sas-bases/examples/sas-programming-environment/storage/README.md</code> (for Markdown format) or at <code>$deploy/sas-bases/docs/sas_programming_environment_storage_tasks.htm</code> (for HTML format).</p>
+<p>The transformers described in this README sets the storage class for the SAS Batch
+Server&rsquo;s <code>viya</code> volume defined in the SAS Batch Server pod templates without
+changing the storage of the other SAS Viya platform servers that use the SAS
+Programming Run-Time Environment.</p>
+<h2 id="140342937978480installation">Installation</h2>
+<p>The changes described by this README take place at the initialization of
+the server application; therefore the changes take effect at the next
+launch of a pod for the server application.</p>
+<p>The volume storage class for these applications can be modified by using the
+example file located at <code>$deploy/sas-bases/examples/sas-batch-server/storage</code>.</p>
+<ol>
+<li>
+<p>Copy the
+<code>$deploy/sas-bases/examples/sas-batch-server/storage/change-batch-server-viya-volume-storage-class.yaml</code>
+file to the site-config directory.</p>
+</li>
+<li>
+<p>To change the storage class, replace the {{ VOLUME-STORAGE-CLASS }} variable
+in the copied file with a different volume storage class.
+The unedited example file contains a transformer that looks like this:</p>
+<pre class="highlight"><code class="language-yaml"> ---
+ apiVersion: builtin
+ kind: PatchTransformer
+ metadata:
+   name: add-batch-viya-volume
+ patch: |-
+   - op: add
+     path: /template/spec/volumes/-
+     value:
+       name: viya
+       {{ VOLUME-STORAGE-CLASS }}
+ target:
+   kind: PodTemplate
+   labelSelector: "launcher.sas.com/job-type=sas-batch-job"</code></pre>
+
+<p>Assume that the storage location you want to use is an NFS volume.   That volume may be
+ described in the following way:</p>
+<pre class="highlight"><code class="language-yaml"> nfs:
+   server: myserver.mycompany.com
+   path: /path/to/my/location</code></pre>
+
+<p>To use this storage location in the transformer, substitute in the volume definition in the
+ {{ VOLUME-STORAGE-CLASS }} location.  The result would look like this:</p>
+<pre class="highlight"><code class="language-yaml"> ---
+ apiVersion: builtin
+ kind: PatchTransformer
+ metadata:
+   name: add-batch-viya-volume
+ patch: |-
+   - op: add
+     path: /template/spec/volumes/-
+     value:
+       name: viya
+       nfs:
+         server: myserver.mycompany.com
+         path: /path/to/my/location
+ target:
+   kind: PodTemplate
+   labelSelector: launcher.sas.com/job-type=sas-batch-job</code></pre>
+
+<p><strong>Note:</strong> The first transformer defined in the example file deletes the previously defined <code>viya</code>
+ volume specification in the associated podTemplates and the second transformer in the example file
+ adds the <code>viya</code> volume you defined. Any content that may
+ exist in the current <code>viya</code> volume is not affected by these transformers.</p>
+</li>
+<li>
+<p>After you edit the change-batch-server-viya-volume-storage-class.yaml file, add it to the transformers block
+   of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>) before the required transformers.yaml.</p>
+<p><strong>Note:</strong> If the <code>$deploy/sas-bases/examples/sas-programming-environment/storage/change-viya-volume-storage-class.yaml</code>
+ transformers file is also being used in the base kustomization.yaml file,
+ ensure the Batch Server transformers file is located <strong>after</strong> the entry for
+ the <code>change-viya-volume-storage-class.yaml</code> patch.
+ Otherwise the Batch Server patch will have no effect.</p>
+<p>Here is an example assuming the file has been saved to
+ <code>$deploy/site-config</code>:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+&lt;...other transformers...&gt;
+&lt; site-config/change-viya-volume-storage-class.yaml if used&gt;
+- site-config/change-batch-server-viya-volume-storage-class.yaml
+- sas-bases/overlays/required/transformers.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937978480additional-resources">Additional Resources</h2>
+<p>For more information about deployment and using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

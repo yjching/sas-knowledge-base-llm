@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure SAS Viya File Service for Azure Blob Storage</title>
+    </head>
+    <body>
+        <h1 id="140342944268592configure-sas-viya-file-service-for-azure-blob-storage">Configure SAS Viya File Service for Azure Blob Storage</h1>
+<p>This README describes the steps necessary to configure your SAS Viya File Service to use Azure Blob storage 
+as the back end for file content.</p>
+<h2 id="140342944268592prerequisites">Prerequisites</h2>
+<p>Before you start, create or obtain a storage account and record the name of the storage account and its access key.</p>
+<p>Follow the instructions in the &ldquo;Change Alternate Data Storage for SAS Viya File Service&rdquo; 
+README file to make Azure Blob Storage the database for storing file content. The README 
+file is located at <code>$deploy/sas-bases/overlays/sas-files/README.mdexamples/azure/blob</code>
+(for Markdown format) or <code>$deploy/sas-bases/docs/change_alternate_data_storage_for_sas_viya_file_service.htm</code> 
+(for HTML format).</p>
+<h2 id="140342944268592installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/azure/blob</code> directory to the 
+<code>$deploy/site-config/azure/blob</code> directory. Create the target directory, if it does 
+not already exist.</p>
+</li>
+<li>
+<p>Create a file named <code>account_key</code> in the <code>$deploy/site-config/azure/blob</code> 
+directory, and paste the storage account key into the file. The file should 
+only contain the storage account key.</p>
+</li>
+<li>
+<p>In the <code>$deploy/site-config/azure/blob/configmaps.yaml</code> file, replace 
+{{ STORAGE-ACCOUNT-NAME }} with the name of the storage account to be used by 
+the file service.</p>
+</li>
+<li>
+<p>Make the following changes to the base kustomization.yaml file in the $deploy 
+directory.</p>
+</li>
+<li>
+<p>Add site-config/azure/blob to the resources block. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/azure/blob
+...</code></pre>
+
+</li>
+<li>
+<p>Add site-config/azure/blob/transformers.yaml to the transformers block. Here 
+is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/azure/blob/transformers.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Use the deployment commands described in <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Deployment Guide</a> to apply the new settings.</p>
+</li>
+</ol>
+    </body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Upgrade to PostgreSQL Operator v5</title>
+    </head>
+    <body>
+        <h1 id="140342937979392upgrade-to-postgresql-operator-v5">Upgrade to PostgreSQL Operator v5</h1>
+<h2 id="140342937979392overview">Overview</h2>
+<p>Beginning with version 2022.10, the SAS Viya platform uses version 5 of the Crunchy Data PostgreSQL Operator. This README describes how to upgrade the PostgreSQL Operator and the PostgreSQL clusters it manages.</p>
+<p><strong>Note:</strong> The PostgreSQL Operator is specific to internal PostgreSQL. If the SAS Viya platform is configured to use external PostgreSQL, skip the contents of this README. You should also skip the contents of this README if the deployment is managed by the SAS Viya Platform Deployment Operator or you have already deployed the correct PostgreSQL Operator version. To check the version that is deployed, run the following command. If it returns an error or a message &ldquo;No resources found in <your-namespace> namespace&rdquo;, you are at version 5 of the operator.</p>
+<pre class="highlight"><code class="language-bash">kubectl get pgclusters.crunchydata.com -n {{ NAME-OF-NAMESPACE }}</code></pre>
+
+<h2 id="140342937979392instructions">Instructions</h2>
+<p>Perform the steps under each of the following subsections in the order they are written.</p>
+<h3 id="140342937979392scale-down-the-sas-data-server-operator">Scale Down the SAS Data Server Operator</h3>
+<ol>
+<li>
+<p>Scale down the existing SAS Data Server Operator deployment. In the following command, replace the entire variable <code>{{ NAME-OF-NAMESPACE }}</code>, including the braces, with your SAS Viya platform namespace.</p>
+<pre><code>```bash
+kubectl scale deployment --replicas=0 sas-data-server-operator -n {{ NAME-OF-NAMESPACE }}
+```
+
+If you receive the following error, your SAS Viya platform deployment did not include the SAS Data Server Operator. In this case, skip to [Prepare and Terminate PostgreSQL Clusters](#prepare-and-terminate-postgresql-clusters).
+
+```bash
+Error from server (NotFound): deployments.apps "sas-data-server-operator" not found
+```
+</code></pre>
+</li>
+<li>
+<p>Wait for the SAS Data Server Operator pod to be terminated:</p>
+<pre><code>```bash
+kubectl wait --for=delete --selector="app.kubernetes.io/name=sas-data-server-operator" pods --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+```
+</code></pre>
+</li>
+</ol>
+<h3 id="140342937979392prepare-and-terminate-postgresql-clusters">Prepare and Terminate PostgreSQL Clusters</h3>
+<ol>
+<li>
+<p>List the PostgreSQL clusters included in your deployment using the command below.</p>
+<pre><code>```bash
+kubectl get pgclusters.crunchydata.com -n {{ NAME-OF-NAMESPACE }}
+```
+
+The remaining steps in this section should be performed for *each* PostgreSQL cluster listed by the command. Replace the variable `{{ PGCLUSTER-NAME }}` in any later commands with the PostgreSQL cluster resource you are targeting.
+</code></pre>
+</li>
+<li>
+<p>Scale down the replica deployments. Scaling down fails back the primary if it was failed over to a replica.</p>
+<pre><code>```bash
+kubectl scale --replicas=0 deployment --selector=crunchy-pgha-scope={{ PGCLUSTER-NAME }},name!={{ PGCLUSTER-NAME }} -n {{ NAME-OF-NAMESPACE }}
+
+kubectl wait --for=delete --selector=crunchy-pgha-scope={{ PGCLUSTER-NAME }},name!={{ PGCLUSTER-NAME }} pods --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+```
+
+Ignore the following error, which is returned if the pods are already down before the wait command.
+
+```bash
+error: no matching resources found
+```
+</code></pre>
+</li>
+<li>
+<p>Check the cluster to ensure only one pod is running as Leader.</p>
+<pre><code>```bash
+kubectl exec deployment/{{ PGCLUSTER-NAME }} -c database -n {{ NAME-OF-NAMESPACE }} -- patronictl list
+```
+
+The output should look something like the following:
+
+```bash
++ Cluster: sas-crunchy-data-postgres (7016764262444130456) -----------+---------+---------+----+-----------+
+| Member                                                | Host        | Role    | State   | TL | Lag in MB |
++-------------------------------------------------------+-------------+---------+---------+----+-----------+
+| sas-crunchy-data-postgres-7f846c5d94-wlwrp            | 10.244.2.88 | Leader  | running | 19 |           |
++-------------------------------------------------------+-------------+---------+---------+----+-----------+
+```
+</code></pre>
+</li>
+<li>
+<p>Delete the replica PVCs.</p>
+<pre><code>```bash
+kubectl delete pvc $(kubectl get deploy --selector=crunchy-pgha-scope={{ PGCLUSTER-NAME }},name!={{ PGCLUSTER-NAME }} -o jsonpath='{.items[*].metadata.name}' -n {{ NAME-OF-NAMESPACE }} ) --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+```
+</code></pre>
+</li>
+<li>
+<p>Scale down the primary deployment.</p>
+<pre><code>```bash
+kubectl scale --replicas=0 deployment --selector=crunchy-pgha-scope={{ PGCLUSTER-NAME }},name={{ PGCLUSTER-NAME }} -n {{ NAME-OF-NAMESPACE }}
+
+kubectl wait --for=delete --selector=crunchy-pgha-scope={{ PGCLUSTER-NAME }},name={{ PGCLUSTER-NAME }} pods --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+```
+
+Ignore the following error, which is returned if the pods are already down before the wait command.
+
+```bash
+error: no matching resources found
+```
+</code></pre>
+</li>
+<li>
+<p>Patch the security context of the pgBackrest deployment. If your deployment is running on OpenShift, skip this step.</p>
+<pre><code>```bash
+kubectl patch -n {{ NAME-OF-NAMESPACE }} deployment {{ PGCLUSTER-NAME }}-backrest-shared-repo --type json -p '[{"op": "replace", "path": "/spec/template/spec/securityContext", "value": { "runAsNonRoot": true, "runAsUser": 2000, "runAsGroup": 26, "fsGroup": 26, "supplementalGroups": [26, 2000]}}]'
+
+kubectl rollout status -n {{ NAME-OF-NAMESPACE }} deployment {{ PGCLUSTER-NAME }}-backrest-shared-repo
+```
+</code></pre>
+</li>
+<li>
+<p>Modify file permissions for the pgBackrest directory. If your deployment is running on OpenShift, skip this step.</p>
+<pre><code>```bash
+kubectl exec -n {{ NAME-OF-NAMESPACE }} deployment/{{ PGCLUSTER-NAME }}-backrest-shared-repo -- chmod -R 770 /backrestrepo/{{ PGCLUSTER-NAME }}-backrest-shared-repo/
+
+kubectl exec -n {{ NAME-OF-NAMESPACE }} deployment/{{ PGCLUSTER-NAME }}-backrest-shared-repo -- chgrp -R postgres /backrestrepo/{{ PGCLUSTER-NAME }}-backrest-shared-repo/
+```
+</code></pre>
+</li>
+<li>
+<p>Terminate the PostgreSQL cluster.</p>
+<pre><code>Copy the template file `$deploy/sas-bases/examples/crunchydata/pgo4upgrade/pgtask-rmdata.yaml` to your site-config directory, `$deploy/site-config/`. If a copy already exists, you may overwrite it. Then, follow the instructions within the copied file to populate any necessary variables.
+
+After copying and filling out the file, apply it to terminate the PostgreSQL cluster. Replace the entire variable `{{ PGTASK-PATH }}`, including the braces, with the expanded location of your copy of the file `$deploy/sas-bases/examples/crunchydata/pgo4upgrade/pgtask-rmdata.yaml`.
+
+```bash
+kubectl apply -f {{ PGTASK-PATH }} -n {{ NAME-OF-NAMESPACE }}
+```
+
+**Note:** Your copy of the file `$deploy/sas-bases/examples/crunchydata/pgo4upgrade/pgtask-rmdata.yaml` should NOT be added or referenced in any kustomization files. After applying it, you may delete your copy of the file.
+</code></pre>
+</li>
+<li>
+<p>Wait for the internal PostgreSQL pods to be terminated.</p>
+<pre><code>```bash
+kubectl wait --for=delete --selector=pg-cluster={{ PGCLUSTER-NAME }} pods --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+```
+</code></pre>
+</li>
+<li>
+<p>Wait for the custom resource pgtask to be terminated.</p>
+<pre><code>```bash
+kubectl wait --for=delete --selector=pg-cluster={{ PGCLUSTER-NAME }} pgtask --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+```
+</code></pre>
+</li>
+<li>
+<p>Remove the TLS artifacts for the PostgreSQL cluster.</p>
+<pre><code>```bash
+kubectl delete job "{{ PGCLUSTER-NAME }}-tls-generator" --ignore-not-found=true --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+
+kubectl delete secret "{{ PGCLUSTER-NAME }}-tls-secret" --ignore-not-found=true --timeout=300s -n {{ NAME-OF-NAMESPACE }}
+```
+</code></pre>
+</li>
+<li>
+<p>Modify PostgreSQL file permissions. If your deployment is running on a provider other than OpenShift, skip this step.</p>
+<pre><code>1. Inside your `$deploy` directory, build the Kubernetes manifest.
+
+    ```bash
+    kustomize build -o site.yaml
+    ```
+
+2. Run Kubernetes jobs to modify PVC file permissions.
+
+    ```bash
+    kubectl -n {{ NAME-OF-NAMESPACE }} apply -f site.yaml -l "webinfdsvr.sas.com/upgrade-crunchy-step-1={{ PGCLUSTER-NAME }}"
+    kubectl -n {{ NAME-OF-NAMESPACE }} wait --for=condition=complete job --timeout=300s -l "webinfdsvr.sas.com/upgrade-crunchy-step-1={{ PGCLUSTER-NAME }}"
+
+    kubectl -n {{ NAME-OF-NAMESPACE }} apply -f site.yaml -l "webinfdsvr.sas.com/upgrade-crunchy-step-2={{ PGCLUSTER-NAME }}"
+    kubectl -n {{ NAME-OF-NAMESPACE }} wait --for=condition=complete job --timeout=300s -l "webinfdsvr.sas.com/upgrade-crunchy-step-2={{ PGCLUSTER-NAME }}"
+
+    kubectl -n {{ NAME-OF-NAMESPACE }} apply -f site.yaml -l "webinfdsvr.sas.com/upgrade-crunchy-step-3={{ PGCLUSTER-NAME }}"
+    kubectl -n {{ NAME-OF-NAMESPACE }} wait --for=condition=complete job --timeout=300s -l "webinfdsvr.sas.com/upgrade-crunchy-step-3={{ PGCLUSTER-NAME }}"
+    ```
+</code></pre>
+</li>
+<li>
+<p>Repeat steps 2-12 for any remaining PostgreSQL clusters listed in step 1.</p>
+</li>
+</ol>
+<h3 id="140342937979392return-to-the-sas-deployment-notes">Return to the SAS Deployment Notes</h3>
+<p>To complete the upgrade to Crunchy Data 5, return to step 5 of the &ldquo;Update to Crunchy Data 5 for Internal Instances of PostgreSQL&rdquo; <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplynotes&amp;docsetTarget=p1bpcvd3sr8au8n1w9ypcvu31taj.htm#p0wzpjfrqqt8e7n1ark37upbs4t7">deployment note</a>.</p>
+    </body>
+</html>

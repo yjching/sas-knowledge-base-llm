@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for CAS</title>
+    </head>
+    <body>
+        <h1 id="140342938789920configuration-settings-for-cas">Configuration Settings for CAS</h1>
+<h2 id="140342938789920overview">Overview</h2>
+<p>This document describes the customizations that can be made by the Kubernetes
+administrator for deploying CAS in both symmetric multiprocessing (SMP) and
+massively parallel processing (MPP) configurations.</p>
+<p>An SMP server requires one Kubernetes node. An MPP server requires one
+Kubernetes node for the server controller and two or more nodes for server
+workers. The <em>SAS Viya Platform: Deployment Guide</em> provides information to help you
+decide. A link to the deployment guide is provided in the
+<a href="#140342938789920additional-resources">Additional Resources</a> section.</p>
+<h2 id="140342938789920installation">Installation</h2>
+<p>SAS provides example files for many common customizations. Read the descriptions
+for the example files in the following list. If you want to use an example file
+to simplify customizing your deployment, copy the file to your
+<code>$deploy/site-config</code> directory.</p>
+<p>Each file has information about its content. The variables in the file are set
+off by curly braces and spaces, such as {{ NUMBER-OF-WORKERS }}. Replace the
+entire variable string, including the braces, with the value you want to use.</p>
+<p>After you edit a file, add a reference to it in the transformer block of the
+base <code>kustomization.yaml</code> file.</p>
+<h2 id="140342938789920examples">Examples</h2>
+<p>The example files are located at <code>$deploy/sas-bases/examples/cas/configure</code>. The
+following is a list of each example file for CAS settings and the file name.</p>
+<ul>
+<li>
+<p>mount non-NFS persistentVolumeClaims and data connectors for the CAS server
+  (<code>cas-add-host-mount.yaml</code>)</p>
+<p><strong><em>Note</em></strong>: To use hostPath mounts on Red Hat OpenShift, see
+<a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p1h8it1wdu2iaxn1bkd8anfcuxny.htm#n02xn6pmscncm8n14zm4zlcyyr2g">Enable hostPath Mounts for CAS</a>.</p>
+</li>
+<li>
+<p>mount NFS persistentVolumeClaims and data connectors for the CAS server
+  (<code>cas-add-nfs-mount.yaml</code>)</p>
+</li>
+<li>
+<p>specify the number of workers in an MPP deployment (<code>cas-manage-workers.yaml</code>)</p>
+<p><strong><em>Note</em></strong>: Do not use this example for an SMP CAS server.</p>
+</li>
+<li>
+<p>add a backup controller to an MPP deployment (<code>cas-manage-backup.yaml</code>)</p>
+<p><strong><em>Note</em></strong>: Do not use this example for an SMP CAS server.</p>
+</li>
+<li>
+<p>change the user the CAS process runs as (<code>cas-modify-user.yaml</code>)</p>
+</li>
+<li>
+<p>modify the storage size for CAS PersistentVolumeClaims
+  (<code>cas-modify-pvc-storage.yaml</code>)</p>
+</li>
+<li>
+<p>manage resources for CPU and memory (<code>cas-manage-cpu-and-memory.yaml</code>)</p>
+</li>
+<li>
+<p>modify the CPU overhead that is reserved for other daemonsets and pods (<code>cas-manage-cpu-reserve.yaml</code>)</p>
+</li>
+<li>
+<p>modify the resource allocation for ephemeral storage
+  (<code>cas-modify-ephemeral-storage.yaml</code>)</p>
+</li>
+<li>
+<p>add a configMap to your CAS server (<code>cas-add-configmap.yaml</code>)</p>
+</li>
+<li>
+<p>add environment variables (<code>cas-add-environment-variables.yaml</code>)</p>
+</li>
+<li>
+<p>add a configMap with an SSSD configuration (<code>cas-sssd-example.yaml</code>)</p>
+<p><strong><em>Note</em></strong>: This file has no variables. It is an example of how to create a
+configMap for SSSD.</p>
+</li>
+<li>
+<p>modify the accessModes on the CAS permstore and data PVCs
+  (<code>cas-storage-access-modes.yaml</code>)</p>
+</li>
+<li>
+<p>disable the sas-backup-agent sidecar from running
+  (<code>cas-disable-backup-agent.yaml</code>)</p>
+</li>
+<li>
+<p>add paths to the file system path allowlist for the CAS server.
+  (<code>cas-add-allowlist-paths.yaml</code>)</p>
+</li>
+<li>
+<p>enable your CAS Services to be externally accessible.
+  (<code>cas-enable-external-services.yaml</code>)</p>
+</li>
+<li>
+<p>remove secure computing mode (seccomp) profile for CAS.
+  (<code>cas-disable-seccomp.yaml</code>)</p>
+</li>
+<li>
+<p>set the secure computing mode (seccomp) profile for CAS, and override the default of &ldquo;RuntimeDefault&rdquo;.
+  (<code>cas-seccomp-profile.yaml</code>)</p>
+</li>
+<li>
+<p>automatically restart CAS servers during Deployment Operator updates.
+  (<code>cas-auto-restart.yaml</code>)</p>
+</li>
+<li>
+<p>enable host identity session launching.
+  (<code>cas-enable-host.yaml</code>)</p>
+</li>
+<li>
+<p>disable publish of HTTP Ingress.
+  (<code>cas-disable-http-ingress.yaml</code>)</p>
+</li>
+<li>
+<p>enable TLS for CAS internode communications.
+  (<code>cas-enable-internode-tls.yaml</code>)</p>
+</li>
+</ul>
+<h3 id="140342938789920disable-cloud-native-mode">Disable Cloud Native Mode</h3>
+<p>Perform these steps if cloud native mode should be disabled in your environment.</p>
+<ol>
+<li>
+<p>Add the following code to the configMapGenerator block of the base kustomization.yaml
+file:</p>
+<pre class="highlight"><code class="language-yaml">...
+configMapGenerator:
+...
+- name: sas-cas-config
+  behavior: merge
+  literals:
+    - CASCLOUDNATIVE=0
+...</code></pre>
+
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?softwareId=mysas&amp;softwareVersion=prod&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342938789920enable-system-security-services-daemon-sssd-container">Enable System Security Services Daemon (SSSD) Container</h3>
+<blockquote>
+<p><strong><em>Note</em></strong>: If you are enabling SSSD on an OpenShift cluster, use the SecurityContextConstraint patch <code>cas-server-scc-sssd.yaml</code> instead of <code>cas-server-scc.yaml</code>. This will set the correct capabilities and privilege escalation.</p>
+</blockquote>
+<p>Perform these steps if SSSD is required in your environment.</p>
+<ol>
+<li>
+<p>Add sas-bases/overlays/cas-server/cas-sssd-sidecar.yaml as the first entry to the transformers list of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).
+ Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/cas-server/cas-sssd-sidecar.yaml
+...</code></pre>
+
+</li>
+</ol>
+<blockquote>
+<p><strong><em>Note</em></strong>: In the transformers list, the <code>cas-sssd-sidecar.yaml</code> file must precede the entry <code>sas-bases/overlays/required/transformers.yaml</code> and any TLS transformers.</p>
+</blockquote>
+<h3 id="140342938789920add-a-custom-configuration-for-system-security-services-daemon-sssd">Add a Custom Configuration for System Security Services Daemon (SSSD)</h3>
+<p>Use these steps to provide a custom SSSD configuration to handle user authorization in your environment.</p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/cas/configure/cas-sssd-example.yaml</code> file to the location of your
+   CAS server overlay.
+   Example: <code>site-config/cas-server/cas-sssd-example.yaml</code></p>
+</li>
+<li>
+<p>Add the relative path of cas-sssd-example.yaml to the transformers block of the base kustomization.yaml file
+   (<code>$deploy/kustomization.yaml</code>).
+   Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/cas-server/cas-sssd-example.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Copy your custom SSSD configuration file to <code>sssd.conf</code>.</p>
+</li>
+<li>
+<p>Add the following code to the secretGenerator block of the base kustomization.yaml
+  file with a relative path to <code>sssd.conf</code>:</p>
+<pre class="highlight"><code class="language-yaml">...
+secretGenerator:
+...
+- name: sas-sssd-config
+  files:
+    - SSSD_CONF=site-config/cas-server/sssd.conf
+  type: Opaque
+...</code></pre>
+
+</li>
+</ol>
+<h3 id="140342938789920enable-host-launch-in-the-cas-server">Enable Host Launch in the CAS Server</h3>
+<blockquote>
+<p><strong><em>Note</em></strong>: If you use Kerberos in your deployment, or enable SSSD and disable CASCLOUDNATIVE,
+you must enable host launch.</p>
+</blockquote>
+<p>By default, CAS cannot launch sessions under a user&rsquo;s host identity. All sessions run
+under the cas service account instead. CAS can be configured to allow for host identity
+launches by including a patch transformer in the kustomization.yaml file. The
+<code>/$deploy/sas-bases/examples/cas/configure</code> directory
+contains a cas-enable-host.yaml file, which can be used for this purpose.</p>
+<blockquote>
+<p><strong><em>Note</em></strong>: If you are enabling host launch on an OpenShift cluster, specify one of the following files to create the SecurityContextConstraint instead of <code>cas-server-scc.yaml</code>:</p>
+<ul>
+<li>If SSSD is not configured, use the SecurityContextConstraint patch <code>cas-server-scc-host-launch.yaml</code></li>
+<li>If SSSD is configured, use the SecurityContextConstraint patch <code>cas-server-scc-sssd.yaml</code></li>
+</ul>
+<p>This will set the correct capabilities and privilege escalation.</p>
+</blockquote>
+<p>To enable this feature:</p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/cas/configure/cas-enable-host.yaml</code> file to the location of your
+CAS server overlay. For example, <code>site-config/cas-server/cas-enable-host.yaml</code>.</p>
+</li>
+<li>
+<p>The example file defaults to targeting all CAS servers by specifying a name component of <code>.*</code>.
+To target specific CAS servers, comment out the <code>name: .*</code> line and choose which CAS servers you
+want to target. Either uncomment the name: and replace NAME-OF-SERVER with one particular CAS
+server or uncomment the labelSelector line to target only the default deployment.</p>
+</li>
+<li>
+<p>Add the relative path of the <code>cas-enable-host.yaml</code> file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>) before the reference to
+the sas-bases/overlays/required/transformers.yaml file and any SSSD transformers. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/cas-server/cas-enable-host.yaml
+...
+- sas-bases/overlays/required/transformers.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h3 id="140342938789920enable-cas-internode-encryption">Enable CAS Internode Encryption</h3>
+<p>CAS supports encrypting connections between the worker nodes. When internode encryption is configured, any data sent between worker nodes is sent over a TLS connection.</p>
+<p>By default, CAS internode communication is not encrypted in any of the SAS Viya platform encryption modes.  If required, CAS internode encryption should only be enabled in the &ldquo;Full-stack TLS&rdquo; encryption mode.</p>
+<p>Before deciding to enable CAS internode encryption, you should be familiar with the content in <a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calencryptmotion&amp;docsetTarget=titlepage.htm">SAS Viya Platform Encryption: Data in Motion</a>.</p>
+<blockquote>
+<p><strong>Note:</strong> Encryption has performance costs. Enabling CAS internode encryption will degrade your performance and increase the amount of CPU time that is required to complete any action. Actions that move large amounts of data are penalized the most. Session start-up time is also impacted negatively. Testing indicates that scenarios that move large blocks of data between nodes can increase elapsed action times by a factor of ten.</p>
+</blockquote>
+<p>Perform these steps to enable CAS internode encryption.</p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/cas/configure/cas-enable-internode-tls.yaml</code> into your <code>/site-config</code> directory.  For example: <code>site-config/cas-server/cas-enable-host.yaml</code></p>
+</li>
+<li>
+<p>The cas-enable-internode-tls.yaml transformer file defaults to targeting all CAS servers by specifying a name component of <code>.*</code>. Edit the transformer to indicate the CAS servers you want to target for CAS internode encryption. For more information about selecting specific CAS servers, see <a href="#140342938789920targeting-cas-servers">Targeting CAS Servers</a>.</p>
+</li>
+<li>
+<p>Add the relative path of the <code>cas-enable-internode-tls.yaml</code> file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>) before the reference to the <code>sas-bases/overlays/required/transformers.yaml</code>. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/cas-server/cas-enable-host.yaml
+...
+- sas-bases/overlays/required/transformers.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938789920targeting-cas-servers">Targeting CAS Servers</h2>
+<p>Each example patch has a target section which tells it what resource(s) it should apply to.
+There are several parameters including object name, kind, version, and labelSelector. By default,
+the examples in this directory use  <code>name: .*</code> which applies to all CAS server definitions.
+If there are multiple CAS servers and you want to target a specific instance, you can set the
+&ldquo;name&rdquo; option to the name of that CASDeployment.  If you want to target the default &ldquo;cas-server&rdquo;
+overlay you can use a labelSelector:</p>
+<p>Example:</p>
+<pre class="highlight"><code class="language-yaml">target:
+  name: cas-example
+  labelSelector: "sas.com/cas-server-default"
+  kind: CASDeployment</code></pre>
+
+<blockquote>
+<p><strong><em>Note</em></strong>: When targeting the default CAS server provided explicitly the path option must be used, because the name is a config map token that cannot be targeted.</p>
+</blockquote>
+<h2 id="140342938789920additional-resources">Additional Resources</h2>
+<p>For more information about CAS configuration and using example files, see the
+<a href="http://documentation.sas.com/?softwareId=mysas&amp;softwareVersion=prod&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

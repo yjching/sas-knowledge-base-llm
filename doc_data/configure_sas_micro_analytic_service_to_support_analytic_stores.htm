@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure SAS Micro Analytic Service to Support Analytic Stores</title>
+    </head>
+    <body>
+        <h1 id="140342938047296configure-sas-micro-analytic-service-to-support-analytic-stores">Configure SAS Micro Analytic Service to Support Analytic Stores</h1>
+<h2 id="140342938047296overview">Overview</h2>
+<p>Configuring analytic store (ASTORE) directories is required in order to publish analytic store models from SAS Intelligent Decisioning, SAS Model Manager, and Model Studio to a SAS Micro Analytic Service publishing destination.</p>
+<p>Configuring SAS Micro Analytic Service to use ASTORE files inside the container requires persistent storage from the cloud provider. A PersistentVolumeClaim (PVC) is defined to state the storage requirements from cloud providers. The storage provided by cloud is mapped to predefined paths across services collaborating to handle ASTORE files.</p>
+<p><strong>Note:</strong> This overlay can be applied during the initial deployment of the SAS Viya platform or after the deployment of the SAS Viya platform.</p>
+<p><strong>Note:</strong> If you are configuring this overlay in a multi-tenant environment, perform the steps in the <a href="#140342938047296multi-tenant-configuration">Multi-Tenant Configuration</a> section.</p>
+<h2 id="140342938047296prerequisites">Prerequisites</h2>
+<p>Storage for the ASTORE files must support ReadWriteMany access permissions.</p>
+<p><strong>Note:</strong> The STORAGE-CLASS-NAME from the provider is used to determine the STORAGE-CAPACITY that is required for your ASTORE files. The required storage capacity depends on the size and number of ASTORE files.</p>
+<h2 id="140342938047296installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the files in <code>$deploy/sas-bases/examples/sas-microanalytic-score/astores</code> to the <code>$deploy/site-config/sas-microanalytic-score/astores</code> directory. Create the destination directory, if it does not already exist.</p>
+<p><strong>Note:</strong> If the destination directory already exists, <a href="#140342938047296verify-overlays-for-the-persistent-volumes">verify that the overlays</a> have been applied. 
+ If the output contains the <code>/models/astores/viya</code> and <code>/models/resources/viya</code> mount directory paths, you do not need to take any further actions, unless you want to change the overlay parameters for the mounted directories.</p>
+</li>
+<li>
+<p>The resources.yaml file in <code>$deploy/site-config/sas-microanalytic-score/astores</code> contains the parameters of the storage that is required in the PeristentVolumeClaim. For more information about PersistentVolumeClaims, see <a href="#140342938047296additional-resources">Additional Resources</a>.</p>
+<ul>
+<li>Replace {{ STORAGE-CAPACITY }} with the amount of storage required.</li>
+<li>Replace {{ STORAGE-CLASS-NAME }} with the appropriate storage class from the cloud provider that supports ReadWriteMany access mode.</li>
+</ul>
+</li>
+<li>
+<p>Make the following changes to the base kustomization.yaml file in the $deploy directory.</p>
+<ul>
+<li>Add site-config/sas-microanalytic-score/astores/resources.yaml to the resources block.</li>
+<li>Add sas-bases/overlays/sas-microanalytic-score/astores/astores-transformer.yaml to the transformers block.</li>
+</ul>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- site-config/sas-microanalytic-score/astores/resources.yaml
+
+transformers:
+- sas-bases/overlays/sas-microanalytic-score/astores/astores-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>Complete one of the following deployment steps to apply the new settings.</p>
+<ul>
+<li>If you are applying the overlay during the initial deployment of the SAS Viya platform, complete all the tasks in the README files that you want to use, and then see <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a> in <em>SAS Viya Platform: Deployment Guide</em> for more information.</li>
+<li>If you are applying the overlay after the initial deployment of the SAS Viya platform, see <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=n1f2q6pp0gjheqn1jl204vptrubs.htm">Modify Existing Customizations in a Deployment</a> in <em>SAS Viya Platform: Deployment Guide</em> for information about how to redeploy the software.</li>
+</ul>
+</li>
+</ol>
+<h2 id="140342938047296verify-overlays-for-the-persistent-volumes">Verify Overlays for the Persistent Volumes</h2>
+<ol>
+<li>
+<p>Run the following command to verify whether the overlays have been applied:</p>
+<pre class="highlight"><code class="language-sh">kubectl describe pod  &lt;sas-microanalyticscore-pod-name&gt; -n &lt;name-of-namespace&gt;</code></pre>
+
+</li>
+<li>
+<p>Verify that the output contains the following mount directory paths:</p>
+<pre class="highlight"><code class="language-yaml">Mounts:
+  /models/astores/viya from astores-volume (rw,path="models")
+  /models/resources/viya from astores-volume (rw,path="resources")</code></pre>
+
+<h2 id="140342938047296multi-tenant-configuration">Multi-Tenant Configuration</h2>
+</li>
+</ol>
+<p>In a multi-tenant environment, the ASTORE and resource files are stored in subdirectories that are specific to each tenant and they are secured.</p>
+<ol>
+<li>
+<p>During the tenant onboarding process, a subdirectory is created for each tenant on the astores and resources PVC. The subdirectory name is the same as the tenant name. 
+   Here is an example: If the tenant is named CompanyA, then a directory named CompanyA is created on each PVC.</p>
+<p>The owner of the tenant directory is then set to <code>sas (user 1001)</code> and the permissions on the directory are set to Read, Write, and Execute for user and group, and Execute for other.</p>
+</li>
+<li>
+<p>After a tenant is onboarded, secure the directories for each tenant:</p>
+<p>1) Create a group specific to the tenant that contains users for the tenant that might need access to the directory for administrative purposes. Also, add the <code>sas</code> user to each group.
+ 2) Set the owner group of the tenant directory to the tenant-specific group that was created in the previous step.</p>
+</li>
+</ol>
+<h2 id="140342938047296additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims">Persistent Volume Claims on Kubernetes</a></li>
+<li><a href="http://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calmodels&amp;docsetTarget=n10916nn7yro46n119nev9sb912c.htm">Accessing Analytic Store Model Files</a> in <em>SAS Viya Platform: Models Administration</em></li>
+<li><a href="http://documentation.sas.com/?cdcId=mascdc&amp;cdcVersion=default&amp;docsetId=masag&amp;docsetTarget=n0er040gsczf7bn1mndiw7znffad.htm">Configuring Analytic Store and Python Model Directories</a> in <em>SAS Micro Analytic Service: Programming and Administration Guide</em></li>
+</ul>
+    </body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure Python for SAS Model Repository Service</title>
+    </head>
+    <body>
+        <h1 id="140342938789248configure-python-for-sas-model-repository-service">Configure Python for SAS Model Repository Service</h1>
+<h2 id="140342938789248overview">Overview</h2>
+<p>The SAS Model Repository service provides support for registering, organizing, and managing models within a common model repository. 
+This service is used by SAS Event Stream Processing, SAS Intelligent Decisioning, SAS Model Manager, Model Studio, SAS Studio, and SAS Visual Analytics. </p>
+<p>Analytic store (ASTORE) files are extracted from the analytic store&rsquo;s CAS table in the ModelStore caslib and written to the ASTORES persistent volume, when the following actions are performed:</p>
+<ul>
+<li>an analytic store model is set as the project champion model using SAS Model Manager</li>
+<li>an analytic store model is published to a SAS Micro Analytic Service publishing destination from SAS Model Manager or Model Studio </li>
+<li>a test is run for a decision that contains an analytic store model using SAS Intelligent Decisioning</li>
+</ul>
+<p>When Python models (or decisions that use Python models) are published to the SAS Micro Analytic Service or CAS, the Python score resources are copied to the ASTORES persistent volume. 
+Score resources for project champion models that are used by SAS Event Stream Processing are also copied to the persistent volume.</p>
+<p>During the migration process, the Python restore script (RestoreScript.py) enables users to restore analytic stores models and Python models in the common model repository, 
+along with their associated resources and analytic store files in the ASTORES persistent volume. In order to run the restore script, you must first verify that Python is configured for the SAS Model Repository service. 
+The restore script can be used in a customer-prepared environment that consists of a Python installation with any required packages that are stored in a Kubernetes persistent volume. </p>
+<p><strong>Note:</strong> The restore script does not migrate Python score resources from a SAS Viya 3.5 to SAS Viya 4 environment. For more information, see <a href="http://documentation.sas.com/?cdcId=mdlmgrcdc&amp;cdcVersion=default&amp;docsetId=mdlmgrag&amp;docsetTarget=p0n2f2djoollgqn13isibmb98qd2.htm">Promoting and Migrating Content</a> in <em>SAS Model Manager: Administrator&rsquo;s Guide</em>.</p>
+<p>This README describes how to make the Python persistent volume available to the sas-model-repository container within your deployment, as part of the backup and restore process. 
+The restore script is executed during start-up of the sas-model-repository container, if the <code>SAS_DEPLOYMENT_START_MODE</code> parameter is set to <code>RESTORE</code> or <code>MIGRATION</code>. </p>
+<h2 id="140342938789248prerequisites">Prerequisites</h2>
+<p>The SAS Viya platform provides YAML files that the Kustomize tool uses to configure Python. Before you use those files, you must perform the following tasks:</p>
+<ol>
+<li>
+<p>Make note of the attributes for the volume where Python and the associated packages are to be deployed. For example, for NFS, note the NFS server and directory. 
+   For more information about the various types of persistent volumes in Kubernetes, see <a href="#140342938789248additional-resources">Additional Resources</a>.</p>
+</li>
+<li>
+<p>Verify that Python 3.5+ and the requests package are installed on the volume. </p>
+</li>
+</ol>
+<h2 id="140342938789248installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/sas-model-repository/python</code> directory
+to the <code>$deploy/site-config/sas-model-repository/python</code> directory. Create the target directory, if
+it does not already exist.</p>
+</li>
+<li>
+<p>Make a copy of the kustomization.yaml file to recover after temporary changes are made:
+   cp kustomization.yaml kustomization.yaml.save</p>
+</li>
+<li>
+<p>Attach storage to your SAS Viya platform deployment. The python-transformer.yaml file uses PatchTransformers in Kustomize
+to attach the volume containing your Python installation to the SAS Viya platform. 
+Replace {{ VOLUME-ATTRIBUTES }} with the appropriate volume specification. 
+For example, when using an NFS mount, the {{ VOLUME-ATTRIBUTES }} tag should be
+replaced with <code>nfs: {path: /vol/python, server: myserver.sas.com}</code>
+where <code>myserver.sas.com</code> is the NFS server and <code>/vol/python</code> is the
+NFS path that you recorded in the <a href="#140342938789248prerequisites">Prerequisites</a> step.</p>
+<p>The relevant code excerpt from python-transformer.yaml file before the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+  # Add Python volume
+  - op: add
+    path: /spec/template/spec/volumes/-
+    value: { name: python-volume, {{ VOLUME-ATTRIBUTES }} }
+
+  # Add mount path for Python
+  - op: add
+    path: /template/spec/containers/0/volumeMounts/-
+    value:
+      name: python-volume
+      mountPath: /python
+      readOnly: true  
+
+  # Add restore job parameters
+  - op: add
+    path: /spec/template/spec/containers/0/envFrom/-
+    value:
+      configMapRef:
+        name: sas-restore-job-parameters</code></pre>
+
+<p>The relevant code excerpt from python-transformer.yaml file after the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+  # Add Python volume
+  - op: add
+    path: /spec/template/spec/volumes/-
+    value: { name: python-volume, nfs: {path: /vol/python, server: myserver.sas.com} }
+
+  # Add mount path for Python
+  - op: add
+    path: /template/spec/containers/0/volumeMounts/-
+    value:
+      name: python-volume
+      mountPath: /python
+      readOnly: true   
+
+  # Add restore job parameters
+  - op: add
+    path: /spec/template/spec/containers/0/envFrom/-
+    value:
+      configMapRef:
+        name: sas-restore-job-parameters</code></pre>
+
+</li>
+<li>
+<p>Add site-config/sas-model-repository/python/python-transformer.yaml to the transformers block of the base kustomization.yaml file in the <code>$deploy</code> directory.</p>
+<pre class="highlight"><code class="language-yaml">transformers: 
+- site-config/sas-model-repository/python/python-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>Add the sas-restore-job-parameters code below to the configMapGenerator section of kustomization.yaml, and remove the <code>configMapGenerator</code> line, if it is already present in the default kustomization.yaml:</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+ - name: sas-restore-job-parameters
+   behavior: merge
+   literals:
+    - SAS_BACKUP_ID={{ SAS-BACKUP-ID-VALUE }} 
+    - SAS_DEPLOYMENT_START_MODE=RESTORE</code></pre>
+
+<p>Here are more details about the previous code.</p>
+<ul>
+<li>Replace the value for <code>{{SAS-BACKUP-ID-VALUE}}</code> with the ID of the backup that is selected for restore. </li>
+<li>To increase the logging levels, add the following line to the literals section:<ul>
+<li>SAS_LOG_LEVEL=DEBUG</li>
+</ul>
+</li>
+</ul>
+<p>For more information, see <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=calbr&amp;docsetTarget=n1607whucnyc02n1eo6tbvl1tzcs.htm">Backup and Restore: Perform a Restore</a> in <em>SAS Viya Platform Operations</em>.</p>
+</li>
+<li>
+<p>If you need to rerun a migration, you must remove the <code>RestoreBreadcrumb.txt</code> file from the <code>/models/resources/viya</code> directory. </p>
+<p>Here is example code for removing the file:</p>
+<pre class="highlight"><code>kubectl get pods -n &lt;namespace&gt; | grep model-repository
+kubectl exec -it -n &lt;namespace&gt; &lt;podname&gt; -c sas-model-repository -- bash
+rm /models/resources/viya/RestoreBreadcrumb.txt</code></pre>
+
+</li>
+<li>
+<p>Complete the deployment steps to apply the new settings. See <a href="(http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm)">Deploy the Software</a> in <em>SAS Viya Platform: Deployment Guide</em>.</p>
+<p><strong>Note:</strong> This overlay can be applied during the initial deployment of the SAS Viya platform or after the deployment of the SAS Viya platform.</p>
+<ul>
+<li>If you are applying the overlay during the initial deployment of the SAS Viya platform, complete all the tasks in the README files that you want to use, then run <code>kustomize build</code> to create and apply the manifests. </li>
+<li>If the overlay is applied after the initial deployment of the SAS Viya platform, run <code>kustomize build</code> to create and apply the manifests.</li>
+</ul>
+</li>
+</ol>
+<h2 id="140342938789248additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a></li>
+<li><a href="http://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calmodels">SAS Viya Platform: Models Administration</a></li>
+<li><a href="http://documentation.sas.com/?cdcId=mdlmgrcdc&amp;cdcVersion=default&amp;docsetId=mdlmgrag">SAS Model Manager: Administrator&rsquo;s Guide</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent volumes in Kubernetes</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/volumes/#types-of-volumes">Types of volumes in Kubernetes</a></li>
+</ul>
+    </body>
+</html>

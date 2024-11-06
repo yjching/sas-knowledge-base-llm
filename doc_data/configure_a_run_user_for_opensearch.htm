@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure a Run User for OpenSearch</title>
+    </head>
+    <body>
+        <h1 id="140342937878640configure-a-run-user-for-opensearch">Configure a Run User for OpenSearch</h1>
+<p>In a default deployment of the SAS Viya platform, the OpenSearch JVM process runs under the fixed user ID (UID) of 1000. A fixed UID is required so that files that are written to storage for the search indices can be successfully read after subsequent restarts.</p>
+<p>If you do not want OpenSearch to run with UID 1000, you can specify a different UID for the process. You can take the following steps to apply a transformer that changes the UID of the OpenSearch processes to another value.</p>
+<p><strong>Note:</strong> The decision to change the UID of the OpenSearch processes must be made at the time of the initial deployment. The UID cannot be changed after the SAS Viya platform has been deployed.</p>
+<h2 id="140342937878640configure-run-user">Configure Run User</h2>
+<p>To configure OpenSearch to run as a different UID:</p>
+<ol>
+<li>
+<p>Copy the Run User transformer from <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/run-user/run-user-transformer.yaml</code> into the <code>$deploy/site-config</code> directory.</p>
+</li>
+<li>
+<p>Open the run-user-transformer.yaml file for editing. Replace <code>{{ USER-ID }}</code> with the UID under which the OpenSearch processes should run.</p>
+</li>
+<li>
+<p>Add the run-user-transformer.yaml file to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/run-user-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937878640limitations">Limitations</h2>
+<ul>
+<li>Changing the UID of the OpenSearch processes can be done at initial deployment time only.</li>
+<li>It is not possible to change the group ID (GID) of the OpenSearch processes.</li>
+</ul>
+<h2 id="140342937878640additional-resources">Additional Resources</h2>
+<p>For more information, see
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm&amp;locale=en">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

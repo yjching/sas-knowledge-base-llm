@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Lifecycle Operation: Assess</title>
+    </head>
+    <body>
+        <h1 id="140342937457904lifecycle-operation-assess">Lifecycle Operation: Assess</h1>
+<h2 id="140342937457904overview">Overview</h2>
+<p>The <code>assess</code> lifecycle operation assesses an undeployed manifest file for its eventual use in a cluster.</p>
+<p>For general lifecycle operation execution details, please see the README file at
+<code>$deploy/sas-bases/examples/kubernetes-tools/README.md</code> (for Markdown) or
+<code>$deploy/sas-bases/docs/using_kubernetes_tools_from_the_sas-orchestration_image.htm</code> (for HTML).</p>
+<p><strong>Note:</strong> <code>$deploy</code> refers to the directory containing the deployment assets.</p>
+<p>The following example assumes:</p>
+<ul>
+<li>The deployment assets for the order have been downloaded to <code>$deploy</code>. To download the deployment assets
+  for an order from <code>my.sas.com</code>, go to <a href="http://my.sas.com">http://my.sas.com</a>, log in, find your order
+  and select <code>Download Deployment Assets</code>. Extract the downloaded tarball to <code>$deploy</code>.</li>
+<li>A <code>site.yaml</code> manifest file exists in <code>$deploy</code>.
+  See the <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>
+  for instructions on how to create the site.yaml manifest.</li>
+<li>A kubeconfig file called <code>config</code> exists in <code>/home/user/kubernetes</code>. The kubeconfig file defines the cluster
+  the lifecycle operations will connect to.</li>
+<li>The orchestration image has been pulled and has the local tag &lsquo;sas-orchestration&rsquo;</li>
+<li>The <code>$deploy</code> directory is the current working directory.
+  <code>cd</code> to $deploy and use <code>$(pwd)</code> to mount the current directory into the container.</li>
+<li><code>{{ NAME-OF-NAMESPACE }}</code> is the namespace where the SAS Viya platform deployment described by the manifest file being assessed will be located.</li>
+</ul>
+<h2 id="140342937457904example">Example</h2>
+<pre class="highlight"><code>cd $deploy
+docker run --rm \
+  -v "$(pwd):/cwd" \
+  -v /home/user/kubernetes:/kubernetes \
+  -e "KUBECONFIG=/kubernetes/config" \
+  sas-orchestration \
+  lifecycle run \
+    --operation assess \
+    --deployment-dir /cwd \
+    -- \
+    --manifest /cwd/site.yaml \
+    --namespace {{ NAME-OF-NAMESPACE }}</code></pre>
+
+<p><strong>Note:</strong> To see the commands that would be executed from the operation without
+making any changes to the cluster, add <code>-e "DISABLE_APPLY=true"</code> to the container.</p>
+    </body>
+</html>

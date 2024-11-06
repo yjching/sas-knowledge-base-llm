@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure PostgreSQL</title>
+    </head>
+    <body>
+        <h1 id="140342937305776configure-postgresql">Configure PostgreSQL</h1>
+<h2 id="140342937305776overview">Overview</h2>
+<p>The default PostgreSQL server (used by most micro-services) in the SAS Viya platform is called &ldquo;Platform PostgreSQL&rdquo;. The SAS Viya platform can handle multiple PostgreSQL servers at once, but only specific micro-services use servers besides the default. Consult the documentation for your order to see if you have products that require their own PostgreSQL in addition to the default.</p>
+<p>The SAS Viya platform provides two options for your PostgreSQL servers: internal instances provided by SAS or external PostgreSQL that you would like the SAS Viya platform to utilize. Before deploying, you must select which of these options you want to use for your SAS Viya platform deployment. If you follow the instructions in the SAS Viya Platform Deployment Guide, the deployment includes an internal instance of PostgreSQL.</p>
+<p><strong>Note</strong>: PostgreSQL servers must be all internally managed or all externally managed. SAS does <em>not</em> support mixing internal and external PostgreSQL servers in the same deployment. Once deployed, you may not switch between internal and external.</p>
+<h2 id="140342937305776installation">Installation</h2>
+<h3 id="140342937305776platform-postgresql">Platform PostgreSQL</h3>
+<p>Platform PostgreSQL is required in the SAS Viya platform.</p>
+<p>Go to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). In the resources block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- sas-bases/overlays/postgres/platform-postgres</code></pre>
+
+<p>Then, follow the appropriate subsection to continue installing or configuring Platform PostgreSQL as either internally or externally managed.</p>
+<h4 id="140342937305776internally-managed">Internally Managed</h4>
+<p>Follow the steps in the &ldquo;Configure Crunchy Data PostgreSQL&rdquo; README located at <code>$deploy/sas-bases/examples/crunchydata/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_crunchy_data_postgresql.htm</code> (for HTML format).</p>
+<h4 id="140342937305776externally-managed">Externally Managed</h4>
+<p>Follow the steps in the section &ldquo;External PostgreSQL Configuration&rdquo;.</p>
+<h3 id="140342937305776common-data-store-cds-postgresql">Common Data Store (CDS) PostgreSQL</h3>
+<p>CDS PostgreSQL is an additional PostgreSQL server that some services in your SAS Viya platform deployment may want to utilize, providing a second database that can be configured separately from the default PostgreSQL server.</p>
+<p>Go to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). In the resources block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- sas-bases/overlays/postgres/cds-postgres</code></pre>
+
+<p>Then, follow the appropriate subsection to continue installing or configuring CDS PostgreSQL as either internally or externally managed.</p>
+<h4 id="140342937305776internally-managed_1">Internally Managed</h4>
+<p>Follow the steps in the &ldquo;Configure Crunchy Data PostgreSQL&rdquo; README located at <code>$deploy/sas-bases/examples/crunchydata/README.md</code> (for Markdown format) or <code>$deploy/sas-bases/docs/configure_crunchy_data_postgresql.htm</code> (for HTML format).</p>
+<h4 id="140342937305776externally-managed_1">Externally Managed</h4>
+<p>Follow the steps in the section &ldquo;External PostgreSQL Configuration&rdquo;.</p>
+<h3 id="140342937305776external-postgresql-configuration">External PostgreSQL Configuration</h3>
+<p>External PostgreSQL is configured by modifying the DataServer CustomResource to describe your PostgreSQL server. Follow the below steps separately for each external PostgreSQL server in your Viya deployment.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/postgres/postgres-user.env</code> into your <code>$deploy/site-config/postgres/</code> directory and make it writable:</p>
+<pre class="highlight"><code class="language-bash">chmod +w $deploy/site-config/postgres/postgres-user.env</code></pre>
+
+</li>
+<li>
+<p>Rename the copied file to something unique. SAS recommends following the naming convention: <code>{{ POSTGRES-SERVER-NAME }}-user.env</code>. For example, a copy of the file for Platform PostgreSQL might be called <code>platform-postgres-user.env</code>.</p>
+<p><strong>Note:</strong> Take note of the name and path of your copied file. This information will be used in a later step.</p>
+</li>
+<li>
+<p>Adjust the values in your copied file following the in-line comments.</p>
+</li>
+<li>
+<p>Go to the base kustomization file (<code>$deploy/kustomization.yaml</code>). In the secretGenerator block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">secretGenerator:
+- name: {{ POSTGRES-USER-SECRET-NAME }}
+  envs:
+  - {{ POSTGRES-USER-FILE }}</code></pre>
+
+</li>
+<li>
+<p>In the added secretGenerator, fill out the user-defined values as follows:</p>
+<ol>
+<li>
+<p>Replace <code>{{ POSTGRES-USER-SECRET-NAME }}</code> with a unique name for the secret. For example, you might use <code>platform-postgres-user</code> if specifying the user for Platform PostgreSQL.</p>
+</li>
+<li>
+<p>Replace <code>{{ POSTGRES-USER-FILE }}</code> with the path of the file you copied in Step 2. For example, this may be something like <code>site-config/postgres/platform-postgres-user.env</code>.</p>
+</li>
+</ol>
+<p><strong>Note:</strong> Take note of the name you give this secretGenerator. This information will be used in a later step.</p>
+</li>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/postgres/dataserver-transformer.yaml</code> into your <code>$deploy/site-config/postgres</code> directory and make it writable:</p>
+<pre class="highlight"><code class="language-bash">chmod +w $deploy/site-config/postgres/dataserver-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>Rename the copied file to something unique. SAS recommends following the naming convention: <code>{{ POSTGRES-SERVER-NAME }}-dataserver-transformer.yaml</code>. For example, a copy of the transformer targeting Platform PostgreSQL might be called <code>platform-postgres-dataserver-transformer.yaml</code>, and if you have CDS PostgreSQL, then a copy of the transformer targeting CDS PostgreSQL might be called <code>cds-postgres-dataserver-transformer.yaml</code>.</p>
+<p><strong>Note:</strong> Take note of the name and path of your copied file. This information will be used in step 9.</p>
+</li>
+<li>
+<p>Adjust the values in your copied file following the guidelines in the comments.</p>
+</li>
+<li>
+<p>In the transformers block of the base kustomization.yaml (<code>$deploy/kustomization.yaml</code>), add references to the files you renamed in step 7. The following example is based on the deployment using a file named <code>platform-postgres-dataserver-transformer.yaml</code> for the Platform PostgreSQL instance:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- site-config/postgres/platform-postgres-dataserver-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<h4 id="140342937305776setting-a-custom-database-name">Setting a Custom Database Name</h4>
+<p>By default, the SAS Viya platform uses a database named &ldquo;SharedServices&rdquo; in each PostgreSQL server. Custom database names for external PostgreSQL are supported, but names must be consistent across all PostgreSQL servers. For example, if you change the database name for CDS PostgreSQL to &ldquo;viyaProd&rdquo;, you must also change the database name for Platform PostgreSQL to &ldquo;viyaProd&rdquo;.</p>
+<p>To set a custom database name, uncomment the surrounding block and replace the <code>{{ DB-NAME }}</code> variable in your copied <code>dataserver-transformer.yaml</code> file(s) with the custom database name.</p>
+<h4 id="140342937305776security-considerations">Security Considerations</h4>
+<p>SAS strongly recommends the use of SSL/TLS to secure data in transit. You should follow the documented best practices provided by your cloud platform provider for securing access to your database using SSL/TLS. Securing your database server with SSL/TLS entails the use of certificates. Upon securing your database server, your cloud platform provider may provide you with a server CA certificate. In order for the SAS Viya platform to connect directly to a secure database server, you must provide the server CA certificate to the SAS Viya platform prior to deployment. Failing to configure the SAS Viya platform to trust the database server CA certificate results in &ldquo;Connection refused&rdquo; errors or in communications falling back to insecure modes. For instructions on how to provide CA certificates to the SAS Viya platform, see the section labeled &ldquo;Incorporating Additional CA Certificates into the SAS Viya Platform Deployment&rdquo; in the README file at <code>$deploy/sas-bases/examples/security/README.md</code> (for Markdown format) or at <code>$deploy/sas-bases/docs/configure_network_security_and_encryption_using_sas_security_certificate_framework.htm</code> (for HTML format).</p>
+<p>When using an SQL proxy for database communication, it might be possible to secure database communication in accordance with the cloud platform vendor&rsquo;s best practices without the need to import your database server CA certificate. Some cloud platforms, such as the Google Cloud Platform, allow the use of a proxy server to connect to the database server indirectly in a manner similar to a VPN tunnel. These platform-provided SQL proxy servers obtain certificates directly from the cloud platform. In this case, a database server CA certificate is obtained automatically by the proxy and you do not need to provide it during deployment. To find out more about SQL proxy connections to the database server, consult your cloud provider&rsquo;s documentation.</p>
+<h5 id="140342937305776google-cloud-platform-cloud-sql-for-postgresql-prerequisites">Google Cloud Platform Cloud SQL for PostgreSQL Prerequisites</h5>
+<p>If you are using Google Cloud SQL for PostgreSQL, the following steps are required for each PostgreSQL server. For example, if you have both a Platform PostgreSQL server and a CDS PostgreSQL server, then you need a separate sql-proxy for each server.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/postgres/cloud-sql-proxy.yaml</code> to your <code>$deploy/site-config/postgres/</code> directory and make it writable:</p>
+<pre class="highlight"><code class="language-bash">chmod +w $deploy/site-config/postgres/cloud-sql-proxy.yaml</code></pre>
+
+</li>
+<li>
+<p>Rename the copied file to something unique. SAS recommends following the naming convention: <code>{{ POSTGRES-SERVER-NAME }}-cloud-sql-proxy.yaml</code>. For example, a copy of the transformer targeting Platform PostgreSQL might be called <code>platform-postgres-cloud-sql-proxy.yaml</code>, and if you have CDS PostgreSQL, then a copy of the transformer targeting CDS PostgreSQL might be called <code>cds-postgres-cloud-sql-proxy.yaml</code>.</p>
+<p><strong>Note:</strong> Take note of the name and path of your copied file. This information will be used in step 4.</p>
+</li>
+<li>
+<p>Adjust the values in your copied file following the guidelines in the file&rsquo;s comments.</p>
+</li>
+<li>
+<p>In the transformers block of the base kustomization.yaml (<code>$deploy/kustomization.yaml</code>), add references to the files you renamed in step 2. The following example is based on the deployment using a file named <code>platform-postgres-cloud-sql-proxy.yaml</code>:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- site-config/postgres/platform-postgres-cloud-sql-proxy.yaml</code></pre>
+
+</li>
+<li>
+<p>The Google Cloud SQL Proxy requires a Google Service Account Key. It retrieves this key from a Kubernetes Secret. To create this secret you must place the Service Account Key required by the Google sql-proxy in the file <code>$deploy/site-config/postgres/ServiceAccountKey.json</code> (in JSON format).</p>
+</li>
+<li>
+<p>Go to the base kustomization file (<code>$deploy/kustomization.yaml</code>). In the secretGenerator block of that file, add the following content, including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">secretGenerator:
+- name: sql-proxy-serviceaccountkey
+  files:
+  - credentials.json=site-config/postgres/ServiceAccountKey.json</code></pre>
+
+</li>
+<li>
+<p>The file <code>$deploy/sas-bases/overlays/postgres/external-postgres/gcp-tls-transformer.yaml</code> allows database clients and the sql-proxy pod to communicate in clear text. This transformer must be added after all other security transformers.</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/postgres/external-postgres/gcp-tls-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937305776dataserver-customresource">DataServer CustomResource</h2>
+<p>You can add PostgreSQL servers to the SAS Viya platform via the DataServer.webinfdsvr.sas.com <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/">CustomResource</a>. This CustomResource is used to inform the SAS Viya platform of the location and credentials for PostgreSQL servers. DataServers can be configured to reference either internally managed Crunchy Data PostgreSQL clusters or externally managed PostgreSQL servers.</p>
+<p><strong>Note</strong>: DataServer CustomResources will not provision PostgreSQL servers on your behalf.</p>
+<p>To view the DataServer CustomResources in your SAS Viya platform deployment, run the following command.</p>
+<pre class="highlight"><code class="language-bash">kubectl get dataservers.webinfdsvr.sas.com -n {{ NAME-OF-NAMESPACE }}</code></pre>
+    </body>
+</html>

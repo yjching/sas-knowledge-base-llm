@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Using Kubernetes Tools from the sas-orchestration Image</title>
+    </head>
+    <body>
+        <h1 id="140342937970336using-kubernetes-tools-from-the-sas-orchestration-image">Using Kubernetes Tools from the sas-orchestration Image</h1>
+<h2 id="140342937970336overview">Overview</h2>
+<p>The sas-orchestration image includes several tools that help
+deploy and manage the software. It includes a <code>lifecycle</code> command
+that can run various lifecycle operations as well as the recommended
+versions of both <code>kustomize</code> and <code>kubectl</code>. These latter tools may
+be used with docker&rsquo;s <code>--entrypoint</code> option.</p>
+<p>Note: The examples use Docker, but other container engines can be used that adhere to the OCI runtime specification.</p>
+<p>Note: All examples below are auto-generated based on your order.</p>
+<h2 id="140342937970336prerequisites">Prerequisites</h2>
+<p>To run the sas-orchestration image, Docker must be installed.
+Pull the <code>sas-orchestration</code> image:</p>
+<pre class="highlight"><code>docker pull cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-orchestration:1.104.0-20230807.1691433157585</code></pre>
+
+<p>Replace &lsquo;cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-orchestration:1.104.0-20230807.1691433157585&rsquo; with a local tag for ease of use in the examples that will follow:</p>
+<pre class="highlight"><code>docker tag cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-orchestration:1.104.0-20230807.1691433157585 sas-orchestration</code></pre>
+
+<h2 id="140342937970336examples">Examples</h2>
+<p>The examples that follow assume:</p>
+<ul>
+<li><code>$deploy</code> refers to the directory that will contain the deployment assets.</li>
+<li>The deployment assets for the order have been downloaded to <code>$deploy</code>. To download the deployment assets
+  for an order from <code>my.sas.com</code>, go to <a href="http://my.sas.com">http://my.sas.com</a>, log in, find your order
+  and select <code>Download Deployment Assets</code>. Extract the downloaded tarball to <code>$deploy</code>.</li>
+<li>A kubeconfig file called <code>config</code> exists in <code>/home/user/kubernetes</code>. The kubeconfig file defines the cluster
+  the lifecycle operations will connect to.</li>
+<li>The orchestration image has been pulled and has the local tag &lsquo;sas-orchestration&rsquo;</li>
+<li>The <code>$deploy</code> directory is the current working directory.
+  <code>cd</code> to $deploy and use <code>$(pwd)</code> to mount the current directory into the container.</li>
+<li>The software has been deployed into the namespace &lsquo;{{ NAME-OF-NAMESPACE }}&rsquo;</li>
+</ul>
+<h3 id="140342937970336lifecycle">lifecycle</h3>
+<p>The <code>lifecycle</code> command executes deployment-wide operations over the assets deployed from an order.
+See the README file at <code>$deploy/sas-bases/examples/kubernetes-tools/README.md</code> (for Markdown)
+or <code>$deploy/sas-bases/docs/using_kubernetes_tools_from_the_sas-orchestration_image.htm</code> (for HTML) for
+lifecycle operation documentation.</p>
+<p>Docker uses the following options:</p>
+<ul>
+<li><code>-v</code> to mount the directories</li>
+<li><code>-w</code> to define the working directory</li>
+<li><code>-e</code> to define the needed environment variables</li>
+</ul>
+<h3 id="140342937970336additional-lifecycle-command-documentation">Additional <code>Lifecycle</code> command documentation</h3>
+<ul>
+<li><code>$deploy/sas-bases/examples/kubernetes-tools/lifecycle-operations/deploy/README.md</code></li>
+<li><code>$deploy/sas-bases/examples/kubernetes-tools/lifecycle-operations/scale-to-zero/README.md</code></li>
+<li><code>$deploy/sas-bases/examples/kubernetes-tools/lifecycle-operations/scale-up/README.md</code></li>
+</ul>
+<h4 id="140342937970336lifecycle-list">lifecycle list</h4>
+<p>The <code>list</code> sub-command displays the available operations of a deployment</p>
+<h5 id="140342937970336lifecycle-list-example"><code>lifecycle list</code> example</h5>
+<pre class="highlight"><code>cd $deploy
+docker run --rm \
+  -v "$(pwd):/cwd" \
+  -v /home/user/kubernetes:/kubernetes \
+  -e "KUBECONFIG=/kubernetes/config" \
+  -w /cwd \
+  sas-orchestration \
+  lifecycle list --namespace {{ NAME-OF-NAMESPACE }}</code></pre>
+
+<h4 id="140342937970336lifecycle-run">lifecycle run</h4>
+<p>The <code>run</code> sub-command runs a given operation.
+Arguments before <code>--</code> indicate the operation to run and how lifecycle should locate the operation&rsquo;s
+definition. Arguments after <code>--</code> apply to the operation itself, and may vary between operations.</p>
+<h5 id="140342937970336lifecycle-run-example"><code>lifecycle run</code> example</h5>
+<pre class="highlight"><code>cd $deploy
+docker run --rm \
+  -v "$(pwd):/cwd" \
+  -v /home/user/kubernetes:/kubernetes \
+  -e "KUBECONFIG=/kubernetes/config" \
+  sas-orchestration \
+  lifecycle run \
+    --operation assess \
+    --deployment-dir /cwd \
+    -- \
+    --manifest /cwd/site.yaml \
+    --namespace {{ NAME-OF-NAMESPACE }}</code></pre>
+
+<p>As indicated in the example, the <code>run</code> sub-command needs an operation (<code>--operation</code>) and the location of
+your assets (&ndash;deployment-dir). The <code>assess</code> lifecycle operation needs a manifest (<code>--manifest</code>) and the
+Kubernetes namespace to assess, (<code>--namespace</code>). To connect and assess the Kubernetes cluster,
+the KUBECONFIG environment variable is set on the container; (<code>-e</code>).</p>
+<p>To see all possible <code>assess</code> operation arguments, run <code>assess</code> with the <code>--help</code> flag:
+<pre class="highlight"><code>docker run --rm \
+      -v "$(pwd):/cwd" \
+      sas-orchestration \
+      lifecycle run \
+          --operation assess \
+          --deployment-dir /cwd/sas-bases \
+          -- \
+          --help</code></pre></p>
+<h3 id="140342937970336kustomize">kustomize</h3>
+<p>The example assumes that the $deploy directory contains the kustomization.yaml
+and supporting files. Note that the <code>kustomize</code> call here is a simple example.
+Refer to the deployment documentation for full usage details.</p>
+<pre class="highlight"><code>cd $deploy
+docker run --rm \
+  -v "$(pwd):/cwd" \
+  -w /cwd \
+  --entrypoint kustomize \
+  sas-orchestration \
+  build . &gt; site.yaml</code></pre>
+
+<h3 id="140342937970336kubectl">kubectl</h3>
+<p>This example assumes a <code>site.yaml</code> manifest file exists in <code>$deploy</code>.
+See the <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform Deployment Guide</a>.
+for instructions on how to create the site.yaml manifest.</p>
+<p><strong>Note</strong> The <code>kubectl</code> call here is a simple example.
+Refer to the deployment documentation for full usage details.</p>
+<pre class="highlight"><code>cd $deploy
+docker run --rm \
+  -v "$(pwd):/cwd" \
+  -v /home/user/kubernetes:/kubernetes \
+  -w /cwd \
+  --entrypoint kubectl \
+  sas-orchestration \
+  --kubeconfig=/kubernetes/kubeconfig apply -f site.yaml</code></pre>
+
+<h2 id="140342937970336additional-resources">Additional Resources</h2>
+<ul>
+<li>https://docs.docker.com/get-docker/</li>
+<li>https://kustomize.io/</li>
+<li>https://kubectl.docs.kubernetes.io/</li>
+</ul>
+    </body>
+</html>

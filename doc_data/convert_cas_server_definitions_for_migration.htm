@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Convert CAS Server Definitions for Migration</title>
+    </head>
+    <body>
+        <h1 id="140342937701104convert-cas-server-definitions-for-migration">Convert CAS Server Definitions for Migration</h1>
+<h2 id="140342937701104overview">Overview</h2>
+<p>This readme describes how to convert SAS Viya 3.x CAS server definitions into
+SAS Viya 4 Custom Resources (CR) using the sas-migration-cas-converter.sh script.</p>
+<h2 id="140342937701104prerequisites">Prerequisites</h2>
+<p>To convert SAS Viya 3.x CAS servers into compatible SAS Viya 4 CRs, you must
+first run the inventory playbook to create a migration package. The package will
+contain a YAML file with the name of each of your CAS servers, such as
+cas-shared-default.yaml. Instructions to create a migration package using
+this playbook are given in the SAS Viya Platform Administration Guide.</p>
+<p>You perform the conversion process by specifying the name of the YAML file as an
+argument to the sas-migration-cas-converter.sh script. You can specify the <code>-f</code>
+or <code>--file</code> argument. You can specify the <code>-o</code> or <code>--output</code> option to specify
+the location of the output file for the converted custom resource. By default,
+if no output option is specified, the YAML file is created in the current
+directory.</p>
+<p>When you run the conversion script, a file with the custom resource is created
+in the format of {{ CAS-SERVER-NAME }}-migration-cr.yaml.</p>
+<h2 id="140342937701104restore-from-a-backup-location">Restore from a Backup Location</h2>
+<p>If you have data and permstore content to restore, use the <code>cas-migration.yaml</code>
+patch in <code>\$deploy/sas-bases/examples/migration/cas/cas-components</code> to specify
+the backup location to restore from. This patch is already included in the
+kustomization.yaml file in the <code>cas-components</code> directory. To configure this
+patch:</p>
+<ol>
+<li>
+<p>Open cas-migration.yaml to modify its contents.</p>
+</li>
+<li>
+<p>Set up the NFS mount by replacing the NFS-MOUNT-PATH and NFS-SERVER tokens
+   with the mounted path to your backup location and the NFS server where it
+   lives:</p>
+<pre class="highlight"><code class="language-yaml">nfs:
+  path: {{NFS-MOUNT-PATH}}
+  server: {{NFS-SERVER}}</code></pre>
+
+</li>
+<li>
+<p>To include the newly created CAS custom resource in the manifest, add a
+   reference to it in the resources block of the base kustomization.yaml file
+   in the migration example (there is an example commented out). After you
+   run <code>kustomize build</code> and apply the manifest, your server is created.
+   Your backup content is restored if you included the cas-migration.yaml
+   patch with a valid backup location.</p>
+</li>
+</ol>
+<h2 id="140342937701104enable-state-transfer">Enable State Transfer</h2>
+<p>Enabling state transfers allows the sessions, tables and state of a running cas server to be preserved
+between a running CAS server and a new CAS server instance which will be started as part of the CAS server upgrade.</p>
+<p>In the base kustomization.yaml file in the migration example (there are examples commented out):</p>
+<ul>
+<li>Uncomment the <code>- cas-components/state-transfer/transfer-pvc.yaml</code> line from the resources block.</li>
+<li>Uncomment the <code>- cas-components/state-transfer/support-state-transfer.yaml</code> line from the transformers block.</li>
+</ul>
+<h2 id="140342937701104example">Example</h2>
+<p>Run the script:</p>
+<pre class="highlight"><code class="language-bash">./sas-migration-cas-converter.sh -f cas-shared-default.yaml -o .</code></pre>
+
+<p>The output from this command is a file named
+<code>cas-shared-default-migration-cr.yaml</code>.</p>
+<h2 id="140342937701104additional-resources">Additional Resources</h2>
+<p>For more information about CAS migration, see <a href="http://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=promigwlcm&amp;docsetTarget=home.htm">SAS Viya Platform Administration: Promotion and Migration</a>.</p>
+<p><strong>Note:</strong> Ensure that the version indicated by the version selector for the document matches the version of your SAS Viya platform software.</p>
+    </body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>SAS Programming Environment Storage Tasks</title>
+    </head>
+    <body>
+        <h1 id="140342937701920sas-programming-environment-storage-tasks">SAS Programming Environment Storage Tasks</h1>
+<h2 id="140342937701920overview">Overview</h2>
+<p>The SAS Viya platform requires the ability to have write access to certain locations in the
+environment. An example of this is the SASWORK location, where data used at
+runtime may be created or modified. The SAS Programming Environment
+container image is set up by default to use an emptyDir volume for this
+purpose.  Depending on workload, you may need to configure different
+storage classes for these volumes.</p>
+<p>A storage class in Kubernetes is defined by a StorageClass resource.  Examples
+of StorageClasses can be found at <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/">Storage Classes</a>.</p>
+<p>This README describes how to use example files to configure the required
+storage classes.</p>
+<h2 id="140342937701920installation">Installation</h2>
+<p>The following processes assign their runtime storage locations using the
+process described above.</p>
+<ul>
+<li>SAS Compute server</li>
+<li>SAS/CONNECT server</li>
+<li>SAS Batch server</li>
+</ul>
+<p>The default behavior assigns an emptyDir volume for use for runtime storage by
+these server applications.</p>
+<p>This processing takes place at the initialization of the server application;
+therefore these changes take effect upon the next launch of a pod for the
+server application.</p>
+<p>The volume storage class for these applications can be modified by using the
+transformers in the example file located at
+<code>$deploy/sas-bases/examples/sas-programming-environment/storage</code>.</p>
+<ol>
+<li>
+<p>Copy the
+<code>$deploy/sas-bases/examples/sas-programming-environment/storage/change-viya-volume-storage-class.yaml</code>
+file to the site-config directory.</p>
+</li>
+<li>
+<p>To change the StorageClass replace the {{ VOLUME-STORAGE-CLASS }} variable
+in the copied file with a different volume storage class.
+The example file provided looks like the following:</p>
+<pre class="highlight"><code class="language-yaml">- op: add
+  path: /template/spec/volumes/-
+  value:
+    name: viya
+    {{ VOLUME-STORAGE-CLASS }}</code></pre>
+
+<p>For example, assume that the storage location you want to use is an NFS volume.   That volume may be
+ described in the following way:</p>
+<pre class="highlight"><code class="language-yaml">nfs:
+  server: myserver.mycompany.com
+  path: /path/to/my/location</code></pre>
+
+<p>To use this in the transformer, substitute in the volume definition in the
+ {{ VOLUME-STORAGE-CLASS }} location.  The result would look like this:</p>
+<pre class="highlight"><code class="language-yaml">- op: add
+  path: /template/spec/volumes/-
+  value:
+    name: viya
+    nfs:
+      server: myserver.mycompany.com
+      path: /path/to/my/location</code></pre>
+
+<p><strong>Note:</strong> The transformer defined here delete the previously defined <em>viya</em>
+ volume specification in the associated podTemplates.   Any content that may
+ exist in the current <em>viya</em> volume is not affected by this transformer.</p>
+</li>
+<li>
+<p>After you edit the change-viya-volume-storage-class.yaml file, add it to
+the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p><strong>Note:</strong> The reference to the <code>site-config/change-viya-volume-storage-class.yaml</code> overlay must come before the required transformers.yaml.</p>
+<p>Here is an example assuming the file has been saved to
+ <code>$deploy/site-config</code>:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+  - site-config/change-viya-volume-storage-class.yaml
+  - sas-bases/overlays/required/transformers.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937701920additional-resources">Additional Resources</h2>
+<p>For more information about deployment and using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure R for the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937701440configure-r-for-the-sas-viya-platform">Configure R for the SAS Viya Platform</h1>
+<h2 id="140342937701440overview">Overview</h2>
+<p>The SAS Viya platform can use a customer-prepared environment consisting of an R installation and any required packages stored on a Kubernetes Persistent Volume.
+This README describes how to make that volume available to your deployment.</p>
+<h2 id="140342937701440prerequisites">Prerequisites</h2>
+<p>The SAS Viya platform provides YAML files that the Kustomize tool uses to configure R. Before you use those files, you must perform the following tasks:</p>
+<ol>
+<li>
+<p>Make note of the attributes of the volume where R and the associated packages are to be deployed. For example, note the server and directory for NFS.
+   For more information about various types of persistent volumes in Kubernetes, see <a href="#140342937701440additional-resources">Additional Resources</a>.</p>
+</li>
+<li>
+<p>Install R and any necessary packages on the volume.</p>
+</li>
+<li>
+<p>In addition to the volume attributes, you must have the following information:</p>
+<ul>
+<li>{{ R-MOUNTPATH }} - the install path used when R is built excluding top-level directory (for example, /nfs/r-mount).</li>
+<li>{{ R-HOMEDIR }} - the top-level directory of the R installation on that volume (for example, R-3.6.2).</li>
+<li>{{ SAS-EXTLANG-SETTINGS-XML-FILE }} - configuration file for enabling Python and R integration in CAS. This is only needed if using R with either CMP or the EXTLANG package.</li>
+<li>{{ SAS-EXT-LLP-R-PATH }} - list of directories to look for when searching for run-time shared libraries (similar to LD_LIBRARY_PATH).</li>
+</ul>
+</li>
+</ol>
+<h2 id="140342937701440installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/sas-open-source-config/r</code> directory to the <code>$deploy/site-config/sas-open-source-config/r</code> directory. Create the target directory, if it does not already exist.</p>
+<p><strong>Note:</strong> If the destination directory already exists, <a href="#140342937701440verify-overlay-for-r-volume">verify that the overlay</a> has been applied.
+ If the output contains the <code>/nfs/r-mount</code> directory path, you do not need to take any further actions, unless you want to change the overlay parameters to use a different R environment.</p>
+</li>
+<li>
+<p>The kustomization.yaml file defines all the necessary environment variables. Replace all tags, such as {{ R-HOMEDIR }}, with the values that you gathered in the <a href="#140342937701440prerequisites">Prerequisites</a> step. Then, set the following parameters, according to the SAS products that you will be using:</p>
+<ul>
+<li>DM_RHOME is used by the Open Source Code node in SAS Visual Data Mining and Machine Learning.</li>
+<li>SAS_EXTLANG_SETTINGS is used by applications that run Python and R code on Cloud Analytic Services (CAS). This includes PROC FCMP and the Time Series External Languages (EXTLANG) package. SAS_EXTLANG_SETTINGS should only be set in one example file; for example, if you set it in the Python example, you should not set it the R example. SAS_EXTLANG_SETTINGS should point to an XML file that is readable by all users. The path can be in the same volume that contains the R environment or in any other volume that is accessible to CAS. Refer to the documentation for the Time Series External Languages (EXTLANG) package for details about the expected XML schema.</li>
+<li>SAS_EXT_LLP_R is used when the base distribution or packages for open source software require additional run-time libraries that are not part of the shipped container image.</li>
+</ul>
+</li>
+<li>
+<p>Attach storage to your SAS Viya platform deployment. The r-transformer.yaml file uses PatchTransformers in kustomize to attach the volume containing your R installation to the SAS Viya platform.</p>
+<ul>
+<li>Replace {{ VOLUME-ATTRIBUTES }} with the appropriate volume specification. For example, when using an NFS mount, the {{ VOLUME-ATTRIBUTES }} tag should be replaced with <code>nfs: {path: /vol/r-mount, server: myserver.sas.com}</code> where <code>myserver.sas.com</code> is the NFS server and <code>/vol/r-mount</code> is the NFS path that you recorded in the Prerequisites.</li>
+<li>Replace {{ R-MOUNTPATH }} with the install path used when R is built, excluding top-level directory.</li>
+</ul>
+<p>The relevant code excerpt from r-transformer.yaml file before the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+# Add R Volume
+  - op: add
+    path: /spec/template/spec/volumes/-
+    value: { name: r-volume, {{ VOLUME-ATTRIBUTES }} }
+# Add mount path for R
+  - op: add
+    path: /template/spec/containers/0/volumeMounts/-
+    value:
+      name: r-volume
+      mountPath: {{ R-MOUNTPATH }}
+    readOnly: true</code></pre>
+
+<p>The relevant code excerpt from r-transformer.yaml file after the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+# Add R Volume
+  - op: add
+    path: /spec/template/spec/volumes/-
+    value: { name: r-volume, nfs: {path: /vol/r, server: myserver.sas.com} }
+# Add mount path for R
+  - op: add
+    path: /template/spec/containers/0/volumeMounts/-
+    value:
+      name: r-volume
+      mountPath: /nfs/r-mount
+      readOnly: true</code></pre>
+
+</li>
+<li>
+<p>Also in the r-transformer.yaml file, there is a PatchTransformer called sas-r-sas-java-policy-allow-list.  This PatchTransformer sets paths to the R interpreter so that the SAS runtime
+   allows execution of the R script.  Replace the {{ R-MOUNTPATH }} and {{ R-HOMEDIR }} tags with the appropriate values.  Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: add-r-sas-java-policy-allow-list
+patch: |-
+  - op: add
+    path: /data/SAS_JAVA_POLICY_ALLOW_DM_RHOME
+    value: /nfs/r/R-3.6.2/bin/Rscript
+target:
+  kind: ConfigMap
+  name: sas-programming-environment-java-policy-config</code></pre>
+
+</li>
+<li>
+<p>Make the following changes to the base kustomization.yaml file in the $deploy directory.</p>
+<ul>
+<li>Add site-config/sas-open-source-config/r to the resources block.</li>
+<li>Add site-config/sas-open-source-config/r/r-transformer.yaml to the transformers block.</li>
+</ul>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- site-config/sas-open-source-config/r
+
+transformers:
+- site-config/sas-open-source-config/r/r-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>Complete the deployment steps to apply the new settings. See <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a> in <em>SAS Viya Platform: Deployment Guide</em>.</p>
+<pre><code>**Note:** This overlay can be applied during the initial deployment of the SAS Viya platform or after the deployment of the SAS Viya platform.
+
+* If you are applying the overlay during the initial deployment of the SAS Viya platform, complete all the tasks in the README files that you want to use, then run `kustomize build` to create and apply the manifests.
+* If the overlay is applied after the initial deployment of the SAS Viya platform, run `kustomize build` to create and apply the manifests.
+</code></pre>
+</li>
+</ol>
+<h2 id="140342937701440verify-overlay-for-r-volume">Verify Overlay for R Volume</h2>
+<ol>
+<li>
+<p>Run the following command to verify whether the overlay has been applied:</p>
+<pre class="highlight"><code class="language-sh">kubectl describe pod sas-cas-server-default-controller -n &lt;name-of-namespace&gt;</code></pre>
+
+</li>
+<li>
+<p>Verify that the output contains the following mount directory paths:</p>
+<pre class="highlight"><code class="language-yaml">Mounts:
+  /nfs/r-mount (r)</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937701440additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volumes in Kubernetes</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/volumes/#types-of-volumes">Volume Types in Kubernetes</a></li>
+<li><a href="http://documentation.sas.com/?cdcId=pgmsascdc&amp;cdcVersion=default&amp;docsetId=castsp&amp;docsetTarget=castsp_extlang_sect002.htm&amp;locale=en">External Languages Access Control Configuration</a> in <em>SAS Viya Platform Programming Documentation</em></li>
+</ul>
+    </body>
+</html>

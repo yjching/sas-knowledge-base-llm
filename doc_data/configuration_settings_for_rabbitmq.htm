@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for RabbitMQ</title>
+    </head>
+    <body>
+        <h1 id="140342938522864configuration-settings-for-rabbitmq">Configuration Settings for RabbitMQ</h1>
+<h2 id="140342938522864overview">Overview</h2>
+<p>This README file describes the settings available for deploying RabbitMQ.</p>
+<h2 id="140342938522864installation">Installation</h2>
+<p>Based on the following description of the available example files, determine if you
+want to use any example file in your deployment. If you do, copy the example
+file and place it in your site-config directory.</p>
+<p>Each file has information about its content. The variables in the file are set
+off by curly braces and spaces, such as {{ NUMBER-OF-NODES }}. Replace the
+entire variable string, including the braces, with the value you want to use.</p>
+<p>After you have edited the file, add a reference to it in the transformers block
+of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an
+example using the RabbitMQ nodes transformer:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/rabbitmq/configuration/rabbitmq-node-count.yaml</code></pre>
+
+<h2 id="140342938522864examples">Examples</h2>
+<p>The example files are located at <code>$deploy/sas-bases/examples/rabbitmq/configuration</code>.
+The following list contains a description of each example file for RabbitMQ settings 
+and the file names.</p>
+<ul>
+<li>specify the number of RabbitMQ nodes in the cluster (rabbitmq-node-count.yaml)</li>
+</ul>
+<p><strong>Note:</strong> The default number of nodes is 3. SAS recommends a node count that
+is odd such as 1, 3, or 5.</p>
+<ul>
+<li>modify the resource allocation for RAM (rabbitmq-modify-memory.yaml)</li>
+</ul>
+<p><strong>Note:</strong> The default memory limit is 8Gi which may not be sufficient under some
+workloads. If the RabbitMQ pods are restarting on their own or if you notice memory
+usage above 4Gi, then you should increase the memory limit. RabbitMQ requires the
+additional 4Gi for garbage collection.</p>
+<ul>
+<li>modify the resource allocation for CPU (rabbitmq-modify-cpu.yaml)</li>
+<li>modify the PersistentVolumeClaim (PVC) size for nodes (rabbitmq-modify-pvc-size.yaml)</li>
+</ul>
+<p><strong>Note:</strong> You must delete the RabbitMQ statefulset and PVCs before applying the PVC
+size change. Use the following procedure:</p>
+<ol>
+<li>
+<p>Delete the RabbitMQ statefulset.</p>
+<pre class="highlight"><code class="language-bash">kubectl -n &lt;name-of-namespace&gt; delete statefulset sas-rabbitmq-server</code></pre>
+
+</li>
+<li>
+<p>Wait for all of the pods to terminate before deleting the PVCs. You can check the
+status of the RabbitMQ pods with the following command:</p>
+<pre class="highlight"><code class="language-bash">kubectl -n &lt;name-of-namespace&gt; get pods -l app.kubernetes.io/name=sas-rabbitmq-server</code></pre>
+
+</li>
+<li>
+<p>When no pods are listed as output for the command in step 2, delete the PVCs:</p>
+<pre class="highlight"><code class="language-bash">kubectl -n &lt;name-of-namespace&gt; delete pvc -l app.kubernetes.io/name=sas-rabbitmq-server</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

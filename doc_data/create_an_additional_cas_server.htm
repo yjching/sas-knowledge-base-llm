@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Create an Additional CAS Server</title>
+    </head>
+    <body>
+        <h1 id="140342938778448create-an-additional-cas-server">Create an Additional CAS Server</h1>
+<h2 id="140342938778448overview">Overview</h2>
+<p>This README describes how to create additional CAS server definitions with the
+<code>create-cas-server.sh</code> script. The script creates a Custom Resource (CR) that
+can be added to your manifest and deployed to the Kubernetes cluster.</p>
+<p>Running this script creates all of the artifacts that are necessary for
+deploying a new CAS server in the Kubernetes cluster in one directory. The
+directory can be referenced in the base <code>kustomization.yaml</code>.</p>
+<p><strong>Note:</strong> The script does not modify your Kubernetes cluster. It creates the manifests
+that you can apply to your Kubernetes cluster to add a CAS server.</p>
+<h2 id="140342938778448create-a-cas-server">Create a CAS Server</h2>
+<ol>
+<li>
+<p>Run the <code>create-cas-server.sh</code> script and specify, at a minimum, the instance
+   name. The instance name is used to label the server and differentiate it from
+   the default instance that is provided automatically. The default tenant name
+   is &ldquo;shared&rdquo; and provided automatically when multi-tenancy is not enabled in
+   your deployment.</p>
+<pre class="highlight"><code class="language-bash">./create-cas-server.sh -i {{ INSTANCE }}</code></pre>
+
+<p>The sample command creates a top-level directory <code>cas-{{ TENANT }}-{{ INSTANCE }}</code>
+ that contains everything that is required for a new CAS server instance. For
+ example, the directory contains the CR, PVC definitions for the permstore and
+ data PVs, and so on.</p>
+<p>Optional arguments:</p>
+<ul>
+<li>-o, &ndash;output: Output location. This argument is used to specify the parent
+                   directory for the output. For example, you can specify
+                   <code>-o $deploy/site-config</code>. If you do not create the output in that
+                   directory, you should move the new directory to <code>$deploy/site-config</code>.</li>
+<li>-w, &ndash;workers: Specify the number of CAS worker nodes. Default is 0 (SMP).</li>
+<li>-b, &ndash;backup: Set this to include a CAS backup controller. Disabled by default.</li>
+<li>-t, &ndash;tenant: Set the tenant name to be used for this deployment. Default is &lsquo;shared&rsquo;.</li>
+<li>-r, &ndash;transfer: Set this to enable support for state transfer between restarts. Disabled by default.</li>
+<li>-a, &ndash;affinity: Specify the workload.sas.com/class node affinity and toleration to use for this deployment.  Default is &lsquo;cas&rsquo;.</li>
+<li>-q, &ndash;required-affinity: Set this to have the node affinity be a required node affinity.  Default is preferred node affinity.</li>
+<li>-v, &ndash;version: Provides the version of this CAS server creation utility tool.</li>
+<li>-h, &ndash;help: Display help for all the available options.</li>
+</ul>
+</li>
+<li>
+<p>In the base kustomization.yaml file, add the new directory to the resources
+   section so that the CAS server is included when the manifest is rebuilt. This
+   server is fully customizable with the use of patch transformers.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+  - site-config/cas-{{ TENANT }}-{{ INSTANCE }}</code></pre>
+
+</li>
+<li>
+<p>Deploy your software using the steps in <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a>
+   according to the method you are using.</p>
+<pre class="highlight"><code class="language-bash">kubectl get pods -l casoperator.sas.com/server={{ TENANT }}-{{ INSTANCE }}
+cas-{{ TENANT }}-{{ INSTANCE }}-controller     3/3     Running     0          1m
+
+kubectl get pvc -l sas.com/cas-instance: {{ TENANT }}-{{ INSTANCE }}
+NAME                                                  STATUS  ...
+cas-{{ TENANT }}-{{ INSTANCE }}-data                   Bound  ...
+cas-{{ TENANT }}-{{ INSTANCE }}-permstore              Bound  ...</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938778448example">Example</h2>
+<p>Run the script with more options:</p>
+<pre class="highlight"><code class="language-bash">./create-cas-server.sh --instance sample --output . --workers 2 --backup 1</code></pre>
+
+<p>This sample command creates a new directory named <code>cas-shared-sample</code> in the
+current location and creates a new CAS distributed server (MPP) CR with 2
+worker nodes and a backup controller.</p>
+    </body>
+</html>

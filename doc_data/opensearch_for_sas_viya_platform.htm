@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>OpenSearch for SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937846112opensearch-for-sas-viya-platform">OpenSearch for SAS Viya Platform</h1>
+<h2 id="140342937846112overview">Overview</h2>
+<p><a href="https://opensearch.org/">OpenSearch</a> is an Apache 2.0 licensed search and analytics suite based on Elasticsearch 7.10.2 . The SAS Viya platform provides two options for your search cluster: an internal instance provided by SAS or an external instance you would like the SAS Viya platform to utilize. Before deploying, you must select which of these options you want to use for your SAS Viya platform deployment. </p>
+<p><strong>Note</strong>: The search cluster must be either internally managed or externally managed. SAS does <em>not</em> support mixing internal and external search clusters in the same deployment. Once deployed, you cannot switch between an internal and external search cluster.</p>
+<h2 id="140342937846112internally-managed">Internally Managed</h2>
+<p>SAS Viya platform support for an internally managed search cluster is provided by a proprietary <code>sas-opendistro</code> Kubernetes operator.</p>
+<p>If you want to use an internal instance of OpenSearch, refer to the README file located at <code>$deploy/sas-bases/overlays/internal-elasticsearch/README.md</code> (for Markdown format) or at <code>$deploy/sas-bases/docs/configure_an_internal_opensearch_instance_for_sas_viya.htm</code> (for HTML format).</p>
+<h2 id="140342937846112externally-managed">Externally Managed</h2>
+<p>If you want to use an external instance of OpenSearch, you should refer to the README file located at <code>$deploy/sas-bases/examples/configure-elasticsearch/external/README.md</code> (for Markdown format) or at <code>$deploy/sas-bases/docs/configure_an_external_opensearch_instance.htm</code> (for HTML format).</p>
+<p>Externally managed cloud subscriptions to Elasticsearch and Open Distro for Elasticsearch are not supported.</p>
+<h3 id="140342937846112security-considerations">Security Considerations</h3>
+<p>SAS strongly recommends the use of SSL/TLS to secure data in transit. You should follow the documented best practices provided by OpenSearch and your cloud platform provider for securing access to your external OpenSearch instance using SSL/TLS. Securing your OpenSearch cluster with SSL/TLS entails the use of certificates. In order for the SAS Viya platform to connect directly to a secure OpenSearch cluster, you must provide the OpenSearch cluster&rsquo;s CA certificate to the SAS Viya platform prior to deployment. Failing to configure the SAS Viya platform to trust the OpenSearch cluster&rsquo;s CA certificate results in &ldquo;Connection refused&rdquo; errors. For instructions on how to provide CA certificates to the SAS Viya platform, see the section labeled &ldquo;Incorporating Additional CA Certificates into the SAS Viya Platform Deployment&rdquo; in the README file at <code>$deploy/sas-bases/examples/security/README.md</code> (for Markdown format) or at <code>$deploy/sas-bases/docs/configure_network_security_and_encryption_using_sas_security_certificate_framework.htm</code> (for HTML format).</p>
+    </body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>OpenSearch Security Audit Logs</title>
+    </head>
+    <body>
+        <h1 id="140342938265152opensearch-security-audit-logs">OpenSearch Security Audit Logs</h1>
+<h2 id="140342938265152overview">Overview</h2>
+<p>Security audit logs track a range of OpenSearch cluster events. The OpenSearch audit logs can provide beneficial information for compliance purposes or assist in the aftermath of a security breach.</p>
+<p>The audit logs are written to audit indices in the OpenSearch cluster. Audit indices use additional resources. Therefore, it may be preferable to disable the OpenSearch security logging in the cluster.</p>
+<p><strong>Note:</strong> By default, audit logging is enabled for additional security. </p>
+<h2 id="140342938265152disable-security-audit-logs">Disable Security Audit Logs</h2>
+<ol>
+<li>
+<p>Copy the disable security audit transformer from <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/security-audit-logs/disable-security-audit-transformer.yaml</code> into the <code>$deploy/site-config</code> directory.</p>
+</li>
+<li>
+<p>Add the disable-security-audit-transformer.yaml file to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/disable-security-audit-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938265152additional-resources">Additional Resources</h2>
+<p>For more information on OpenSearch audit logs, see the <a href="https://opensearch.org/docs/latest/">OpenSearch Documentation</a>.</p>
+    </body>
+</html>

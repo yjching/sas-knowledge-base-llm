@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for SAS Workload Orchestrator Service</title>
+    </head>
+    <body>
+        <h1 id="140342938521904configuration-settings-for-sas-workload-orchestrator-service">Configuration Settings for SAS Workload Orchestrator Service</h1>
+<h2 id="140342938521904overview">Overview</h2>
+<p>The SAS Workload Orchestrator Service is used to manage workload started on
+demand through the launcher service. The service has manager pods in a
+stateful set and server pods in a daemon set.</p>
+<p>This README file describes the changes that can be made to the SAS Workload
+Orchestrator Service settings for pod resource requirements and for
+user-defined resource scripts.</p>
+<h3 id="140342938521904pod-resource-requests-and-limits">Pod Resource Requests and Limits</h3>
+<p>Kubernetes pods have resource requests and limits for CPU and memory.</p>
+<p>Manager pods handle all the REST API calls and manage all of the processing
+of host, job, and queue information. The more jobs you process at the same time,
+the more memory and cores you should assign to the stateful set pods.
+For manager pods, the current default resource request and limit for CPU and
+memory is 1 core and 4GB of memory.</p>
+<p>Server pods interact with Kubernetes to manage the resources and jobs running
+on a particular node. Their memory and core requirements depend on how jobs are
+allowed to concurrently run on a node and how many pods not started by the
+SAS Workload Orchestrator Service are also running on a node.
+For server pods, the current default resource request and limit for CPU and
+memory is 0.1 core and 250MB of memory.</p>
+<p>Generally, manager pods use more resources than daemon pods with the
+resource request amount equalling the limit amount.</p>
+<h3 id="140342938521904pod-user-defined-script-volume">Pod User-Defined Script Volume</h3>
+<p>SAS Workload Orchestrator allows user-defined resources to be used
+for scheduling. User-defined resources can be a specified value or can
+be a value returned by executing a script.</p>
+<p>Manager pods handle the running of user-defined resource scripts for
+resources that affect the scheduling on a global scale. An example of
+a global resource would be the number of licenses across all pods started
+by SAS Workload Orchestrator.</p>
+<p>Server pods also handle the running of user-defined resource scripts for
+resources that reflect values about an individual node that a pod would run on.
+An example of a host resource could be number of GPUs on a host (for the
+case of a static resource) or the amount of disk space left on a mount (for
+the case of a dynamic resource).</p>
+<p>In order to set these values, SAS Workload Orchestrator looks for a script
+in a volume mount named &ldquo;/scripts&rdquo;. To place a script in that directory,
+the script must be placed in a volume and that volume specified in the
+stateful set or daemon set definition as a volume with the name &lsquo;scripts&rsquo;.</p>
+<h2 id="140342938521904installation">Installation</h2>
+<p>Based on the following descriptions of available example files, determine if you
+want to use any example file in your deployment. If so, copy the example
+file and place it in your site-config directory.</p>
+<p>The example files described in this README file are located at
+&lsquo;/$deploy/sas-bases/examples/sas-workload-orchestrator/configure&rsquo;.</p>
+<h3 id="140342938521904statefulset-pods-requests-and-limits">StatefulSet Pods Requests and Limits</h3>
+<p>The values for memory and CPU resources for the SAS Workload Orchestrator Service manager pods
+are specified in <code>sas-workload-orchestrator-statefulset-resources.yaml</code>.</p>
+<p>To update the defaults, replace the <code>{{ MEM-REQUIRED }}</code> and <code>{{ CPU-REQUIRED }}</code> variables
+with the values you want to use.</p>
+<p><strong>Note:</strong> It is important that the values for the requests and limits
+be identical to get Guaranteed Quality of Service for the SAS Workload Orchestrator Service pods.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">  - op: replace
+    path: /spec/template/spec/containers/0/resources/requests/memory
+    value: 6Gi
+  - op: replace
+    path: /spec/template/spec/containers/0/resources/limits/memory
+    value: 6Gi
+  - op: replace
+    path: /spec/template/spec/containers/0/resources/requests/cpu
+    value: "2"
+  - op: replace
+    path: /spec/template/spec/containers/0/resources/limits/cpu
+    value: "2"</code></pre>
+
+<p><strong>Note:</strong> For details on the value syntax used in the code, see
+<a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes">Resource units in Kubernetes</a>.</p>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-workload-orchestrator/configure/sas-workload-orchestrator-statefulset-resources.yaml</code></pre>
+
+<h3 id="140342938521904daemonset-pods-requests-and-limits">DaemonSet Pods Requests and Limits</h3>
+<p>The values for memory and CPU resources for the SAS Workload Orchestrator Service server pods
+are specified in <code>sas-workload-orchestrator-daemonset-resources.yaml</code>.</p>
+<p>To update the defaults, replace the <code>{{ MEM-REQUIRED }}</code> and <code>{{ CPU-REQUIRED }}</code> variables
+with the values you want to use.</p>
+<p><strong>Note:</strong> It is important that the values for the requests and limits
+be identical to get Guaranteed Quality of Service for the SAS Workload Orchestrator Service pods.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">  - op: replace
+    path: /spec/template/spec/containers/0/resources/requests/memory
+    value: 4Gi
+  - op: replace
+    path: /spec/template/spec/containers/0/resources/limits/memory
+    value: 4Gi
+  - op: replace
+    path: /spec/template/spec/containers/0/resources/requests/cpu
+    value: "1500m"
+  - op: replace
+    path: /spec/template/spec/containers/0/resources/limits/cpu
+    value: "1500m"</code></pre>
+
+<p><strong>Note:</strong> For details on the value syntax used in the code, see
+<a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes">Resource units in Kubernetes</a></p>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-workload-orchestrator/configure/sas-workload-orchestrator-daemonset-resources.yaml</code></pre>
+
+<h3 id="140342938521904user-defined-scripts-volume-for-manager-pods">User-Defined Scripts Volume for Manager Pods</h3>
+<p>The following example mounts an NFS volume as the &lsquo;scripts&rsquo; volume. It is the
+example found in <code>sas-workload-orchestrator-global-user-defined-resources-script-storage.yaml</code>.</p>
+<p>To update the volume, replace the <code>{{ NFS-SERVER-ADDR }}</code> variable with the fully-qualified
+domain name of the server and replace the <code>{{ NFS-SERVER-PATH }}</code> variable with the path to
+the volume on the server. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">  - op: replace
+    path: /spec/template/spec/volumes/0
+    value:
+      name: scripts
+      nfs:
+        path: /path/to/my/scripts
+        server: my.nfs.server.mydomain.com</code></pre>
+
+<p>Alternately, you could use any other type of volume Kubernetes supports.</p>
+<p>The following example updates the volume to use a PersistentVolumeClaim
+instead of an NFS mount. This assumes the PVC has already been defined and created.</p>
+<pre class="highlight"><code class="language-yaml">  - op: replace
+    path: /spec/template/spec/volumes/0
+    value:
+      name: scripts
+      persistentVolumeClaim:
+        claimName: my-pvc-name
+        readOnly: true</code></pre>
+
+<p><strong>Note:</strong> For details on the value syntax used specifying volumes, see
+<a href="https://kubernetes.io/docs/concepts/storage/volumes/">Kubernetes Volumes</a>.</p>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-workload-orchestrator/configure/sas-workload-orchestrator-global-user-defined-resources-script-storage.yaml</code></pre>
+
+<h3 id="140342938521904daemonset-pods-user-defined-script-volume">DaemonSet Pods User-Defined Script Volume</h3>
+<p>The following example mounts an NFS volume as the &lsquo;scripts&rsquo; volume. It is the
+example found in <code>sas-workload-orchestrator-host-user-defined-resources-script-storage.yaml</code>.</p>
+<p>To update the volume, replace the <code>{{ NFS-SERVER-ADDR }}</code> variable with the fully-qualified
+domain name of the server and replace the <code>{{ NFS-SERVER-PATH }}</code> variable with the path to
+the volume on the server. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">  - op: replace
+    path: /spec/template/spec/volumes/0
+    value:
+      name: scripts
+      nfs:
+        path: /path/to/my/scripts
+        server: my.nfs.server.mydomain.com</code></pre>
+
+<p>Alternately, you could use any other type of volume Kubernetes supports.</p>
+<p>The following example updates the volume to use a PersistentVolumeClaim
+instead of an NFS mount. This assumes the PVC has already been defined and created.</p>
+<pre class="highlight"><code class="language-yaml">  - op: replace
+    path: /spec/template/spec/volumes/0
+    value:
+      name: scripts
+      persistentVolumeClaim:
+        claimName: my-pvc-name
+        readOnly: true</code></pre>
+
+<p><strong>Note:</strong> For details on the value syntax used specifying volumes, see
+<a href="https://kubernetes.io/docs/concepts/storage/volumes/">Kubernetes Volumes</a>.</p>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-workload-orchestrator/configure/sas-workload-orchestrator-host-user-defined-resources-script-storage.yaml</code></pre>
+    </body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>SAS Viya Platform Backup</title>
+    </head>
+    <body>
+        <h1 id="140342938615760sas-viya-platform-backup">SAS Viya Platform Backup</h1>
+<p>The files in this directory are used to create a backup of the SAS Viya platform. You can
+perform a one-time backup or you can schedule a regular backup of your
+deployment. For information about performing backups and using these files, see
+<a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calbr&amp;docsetTarget=titlepage.htm">SAS Viya Platform Administration: Backup and
+Restore</a>.</p>
+<p><strong>Note:</strong> Ensure that the version indicated by the version selector for the
+document matches the version of your SAS Viya platform software.</p>
+<h2 id="140342938615760copy-backup-data-to-sas-common-backup-data-persistentvolume">Copy Backup Data to sas-common-backup-data PersistentVolume</h2>
+<p>You can also use a Kubernetes job to copy backup data to the sas-common-backup-data PersistentVolume.</p>
+<ol>
+<li>
+<p>Copy the file sas-backup-copy-job.yaml in the <code>$deploy/sas-bases/examples/backup</code> directory to the <code>$deploy/site-config/backup</code> directory. Create the target directory, if it does not already exist.</p>
+</li>
+<li>
+<p>Examine the contents of the <code>$deploy/site-config/backup</code> directory. If a kustomization.yaml file is present, ensure that it has only the following content. If it does not exist, create the kustomization.yaml file with the following content in that directory.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- sas-backup-copy-job.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Add site-config/backup to the resources block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/backup
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash"> kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

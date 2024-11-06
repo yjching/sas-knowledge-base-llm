@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>SAS Programming Environment Configuration Tasks</title>
+    </head>
+    <body>
+        <h1 id="140342937691136sas-programming-environment-configuration-tasks">SAS Programming Environment Configuration Tasks</h1>
+<h2 id="140342937691136overview">Overview</h2>
+<p>This readme describes how to customize your SAS Viya platform deployment for
+tasks related to the SAS Programming Environment.</p>
+<h2 id="140342937691136installation">Installation</h2>
+<p>SAS provides the ability for modifications to be made to the scripts that
+are used for launching processes.  The following processes allow for modifications
+to be set in SAS Environment Manager.</p>
+<ul>
+<li>SAS CAS server</li>
+<li>SAS Compute server</li>
+<li>SAS/CONNECT server</li>
+<li>SAS/CONNECT spawner</li>
+<li>SAS Batch server</li>
+</ul>
+<p>Each server type has multiple configuration instances for modification of
+configuration files, autoexec code, and startup scripts that are used to launch
+the servers. Modifications to the startup script configurations for each server
+are disabled by default.</p>
+<p>The system administrator can give the SAS Administrator the ability to have
+updates made to these configuration scripts processed by the server applications.</p>
+<p>Since this processing takes place at the initialization of the server application,
+changes to these configMaps take effect upon the next launch of the pod.</p>
+<h3 id="140342937691136enabling-processing-of-sas-administrator-script-modifications">Enabling Processing of SAS Administrator Script Modifications</h3>
+<p>Included in this folder is an overlay called enable-admin-script-access.yaml.
+This overlay provides a patchTransformer that gives the SAS
+Administrator the ability to have script modifications made in SAS Environment
+Manager processed by the server applications.</p>
+<p>To enable this access:</p>
+<ol>
+<li>
+<p>Add sas-bases/overlays/sas-programming-environment/enable-admin-script-access.yaml
+to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).
+Here is an example:</p>
+<pre><code>```
+...
+transformers:
+...
+- sas-bases/overlays/sas-programming-environment/enable-admin-script-access.yaml
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342937691136disabling-processing-of-sas-administrator-script-modifications">Disabling Processing of SAS Administrator Script Modifications</h3>
+<p>Included in this folder is an overlay called disable-admin-script-access.yaml.
+This overlay provides a patchTransformer that denies the SAS
+Administrator the ability to have script modifications made in SAS Environment
+Manager processed by the server applications.</p>
+<p>To disable this access:</p>
+<ol>
+<li>
+<p>Add sas-bases/overlays/sas-programming-environment/disable-admin-script-access.yaml
+to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).
+Here is an example:</p>
+<pre><code>```
+...
+transformers:
+...
+- sas-bases/overlays/sas-programming-environment/disable-admin-script-access.yaml
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+    </body>
+</html>

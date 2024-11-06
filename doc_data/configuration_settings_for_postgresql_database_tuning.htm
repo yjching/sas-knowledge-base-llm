@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for PostgreSQL Database Tuning</title>
+    </head>
+    <body>
+        <h1 id="140342938523392configuration-settings-for-postgresql-database-tuning">Configuration Settings for PostgreSQL Database Tuning</h1>
+<h2 id="140342938523392overview">Overview</h2>
+<p>PostgreSQL is highly configurable, allowing you to tune the server(s) to meet expected workloads. This README describes how to tune and adjust the configuration for your PostgreSQL clusters. Here are the transformers in <code>$deploy/sas-bases/examples/crunchydata/tuning/</code> with a description of the purpose of each:
+- crunchy-tuning-connection-params-transformer.yaml: Change PostgreSQL connection parameters
+- crunchy-tuning-log-params-transformer.yaml: Change PostgreSQL log parameters
+- crunchy-tuning-patroni-params-transformer.yaml: Change Patroni parameters
+- crunchy-tuning-pg-hba-no-tls-transformer.yaml: Set the entry for the pg_hba.conf file to disable TLS</p>
+<h2 id="140342938523392installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the transformer file (for example, <code>$deploy/sas-bases/examples/crunchydata/tuning/crunchy-tuning-connection-params-transformer.yaml</code>) into your <code>$deploy/site-config/crunchydata/</code>.</p>
+</li>
+<li>
+<p>Rename the copied file to something unique. For example, the above transformer targeting Platform PostgreSQL could be named as <code>platform-postgres-crunchy-tuning-connection-params-transformer.yaml</code>.</p>
+</li>
+<li>
+<p>Adjust the values in your copied file using the in-line comments of the file and the directions in &ldquo;Customize the Configuration Settings&rdquo; below.</p>
+</li>
+<li>
+<p>Add a reference to the file in the transformers block of the base kustomization.yaml (<code>$deploy/kustomization.yaml</code>). The following example uses an example transformer file named <code>platform-postgres-crunchy-tuning-connection-params-transformer.yaml</code>:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- site-config/crunchydata/platform-postgres-crunchy-tuning-connection-params-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938523392customize-the-configuration-settings">Customize the Configuration Settings</h2>
+<h3 id="140342938523392change-postgresql-configuration-parameters">Change PostgreSQL Configuration Parameters</h3>
+<p>For a multi-tenant deployment, use the crunchy-tuning-connection-params-transformer.yaml file as a sample transformer, adjusting the &lsquo;max_connections&rsquo; and &lsquo;max_prepared_transactions&rsquo; values according to <a href="https://pubshelpcenter.unx.sas.com/test/doc/en/sasadmincdc/default/caltuning/n0adso3frm5ioxn1s2kwa4vbm9db.htm#n0u9kakykv7eyrn1ckqndq34o478">Multi-Tenancy Considerations</a>.</p>
+<p>To change the PostgreSQL parameters, such as a log filename with a timestamp instead of the name of the week, use the crunchy-tuning-log-params-transformer.yaml file as a sample transformer. You can add, remove, or update log parameters and their values following the pattern shown in the sample file. For the complete list of available PostgreSQL configuration parameters, see <a href="https://www.postgresql.org/docs/12/config-setting.html">PostgreSQL Server Configuration</a>.</p>
+<h3 id="140342938523392postgresql-hba-setting-to-disable-tls">PostgreSQL HBA Setting to Disable TLS</h3>
+<p>Deployments that use non-TLS or Front-Door TLS can use the crunchy-tuning-pg-hba-no-tls-transformer.yaml file to make the incoming client connections go through without TLS.</p>
+<h2 id="140342938523392additional-resources">Additional Resources</h2>
+<p><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm&amp;locale=en">SAS Viya Platform Deployment Guide</a></p>
+<p><a href="https://www.postgresql.org/docs/12/auth-pg-hba-conf.html">PostgreSQL Client Host-Based Authentication</a></p>
+    </body>
+</html>

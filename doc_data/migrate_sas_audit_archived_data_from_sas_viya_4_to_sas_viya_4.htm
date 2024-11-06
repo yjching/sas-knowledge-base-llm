@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Migrate SAS Audit Archived Data from SAS Viya 4 To SAS Viya 4</title>
+    </head>
+    <body>
+        <h1 id="140342938047776migrate-sas-audit-archived-data-from-sas-viya-4-to-sas-viya-4">Migrate SAS Audit Archived Data from SAS Viya 4 To SAS Viya 4</h1>
+<h2 id="140342938047776overview">Overview</h2>
+<p>Archived data from the audit process is stored in a persistent volume (PV) on both single-tenant environments and multi-tenant environments. In a multi-tenant environment, separate folders with the tenant name are created for each tenant in the same PV and data is organized by date. Audit and activity data are stored separately.</p>
+<p>Audit service PVC data does not participate in the SAS Viya platform backup and restore procedure. Therefore it contains archived data that is never restored to the SAS Viya platform system. As a result, when audit archiving is performed, SAS recommends that the cluster administrator take a backup of the audit archive data and keep that data at a secure location.</p>
+<h2 id="140342938047776prerequisites">Prerequisites</h2>
+<ol>
+<li>
+<p>The audit service should be running on both source and target environments and should have the PV attached.</p>
+</li>
+<li>
+<p>To perform some elements of this task, you must have elevated Kubernetes permissions.</p>
+</li>
+<li>
+<p>You should follow the steps described in <a href="https://go.documentation.sas.com/doc/en/itopscdc/default/itopssr/n0ampbltwqgkjkn1j3qogztsbbu0.htm">Hardware and Resource Requirements</a> page, especially   section <a href="https://go.documentation.sas.com/doc/en/itopscdc/default/itopssr/n0ampbltwqgkjkn1j3qogztsbbu0.htm#n1egh9hqndi6lin13w58nozc7vco">Persistent Storage Volumes, PersistentVolumeClaims, and Storage Classes</a>.</p>
+</li>
+<li>
+<p>The tenant names should be same in the source and target environments. If any source environment tenant does not exist on the target environment, then purge functionality will not work for that tenant on the target environment.</p>
+</li>
+</ol>
+<h3 id="140342938047776best-practices-for-performing-manual-backup">Best Practices for Performing Manual Backup</h3>
+<ol>
+<li>
+<p>Take frequent backups of audit archived data during off-peak hours. The frequency of backups should be determined by the frequency of archiving defined by your organization.</p>
+</li>
+<li>
+<p>The PV that contains archived data is part of the same cluster as the environment. Therefore, SAS recommends that you routine copy archived data to storage outside of the cluster, such as NFS, in case the PV or entire cluster fails.</p>
+</li>
+<li>
+<p>The time required to copy the archived audit data contents varies based on the size of the data, the disk I/O rate of the system, and the type of file system that you are using.</p>
+</li>
+</ol>
+<h2 id="140342938047776migrate-archived-audit-data-from-source-sas-viya-4-environment-to-target-sas-viya-4-environment">Migrate Archived Audit Data from Source SAS Viya 4 Environment to Target SAS Viya 4 Environment</h2>
+<p>The following steps use a generic method (tar and kubectl exec) and an Audit service pod to copy data between environments. The steps in this generic method are not specific to any one cloud provider. You might follow a slightly different set of steps depending on what type of storage you are using for your data.</p>
+<ol>
+<li>
+<p>Log in to the cluster where you want to keep a backup of the archived data temporarily. You must have root level permissions to copy the archived data.</p>
+</li>
+<li>
+<p>Determine the temporary location of the data that you wish to copy to and from.</p>
+</li>
+<li>
+<p>Export or set the source machine kubeconfig file and then get source audit pod name.</p>
+<pre class="highlight"><code class="language-yaml">export KUBECONFIG=&lt;source-machine-kubeconfig&gt;
+kubectl get pods -n &lt;name-of-namespace&gt; | grep sas-audit</code></pre>
+
+</li>
+<li>
+<p>Copy audit archived data from source machine to temporary location</p>
+<pre><code>- To copy all the data from a single-tenant or multi-tenant deployment:
+
+  ```yaml
+  kubectl -n &lt;name-of-namespace&gt; exec &lt;source-audit-pod-name&gt; -- tar cpf - -C /archive . | tar xf - -C &lt;temp-folder-path&gt;
+  ```
+
+  Here is an example:
+
+  ```yaml
+  kubectl -n sourceTenant exec sas-audit-58cccfb4f7-pd870 -- tar cpf - -C /archive . | tar xf - -C /opt/tmpDir
+  ```
+
+- To copy individual tenant data in multi-tenant deployments:
+
+  ```yaml
+  kubectl -n &lt;name-of-namespace&gt; exec &lt;source-audit-pod-name&gt; -- tar cpf - -C /archive/&lt;storage-local-destination&gt;/&lt;tenant-name&gt; . | tar xf - -C &lt;temp-folder-path&gt;
+  ```
+
+  Here is an example:
+
+  ```yaml
+  kubectl -n sourceTenant exec sas-audit-7648bcc97d-f7gwv -- tar cpf - -C /archive/auditData/acme . | tar xf - -C /opt/tmpDir
+  ```
+</code></pre>
+</li>
+</ol>
+<p><strong>Note:</strong> <code>temp-folder-path</code> is the location that is being used to keep the data temporarily.
+The <code>storage-local-destination</code> value should be taken from the ‘sas.audit.archive.system.storage.local.destination’ Audit service configuration property of the source environment. The default value for this property is ‘/auditData’. The value is configurable so it is possible that you might have changed it from the default. <code>tenant-name</code> is the name of the tenant being migrated. Each tenant has a folder created with the tenant name to store data separately in single Audit PV.</p>
+<ol>
+<li>
+<p>Export or set target machine kubeconfig on same setup and get target audit pod name.</p>
+<pre class="highlight"><code class="language-yaml">export KUBECONFIG=&lt;target-machine-kubeconfig&gt;
+kubectl get pods -n &lt;name-of-namespace&gt; | grep sas-audit</code></pre>
+
+</li>
+<li>
+<p>Migrate the audit archived data from the temporary location to the target machine PV.
+    - To migrate all the data from a single-tenant or multi-tenant deployment:</p>
+<pre><code>```yaml
+tar cpf - -C &lt;temp-folder-path&gt; * | kubectl -n &lt;name-of-namespace&gt; exec -i &lt;target-audit-pod-name&gt; -- tar xf - -C /archive
+```
+
+Here is an example:
+
+```yaml
+tar cpf - -C /opt/tmpDir * | kubectl -n targetTenant exec -i sas-audit-555c58c44f-ssjx7 -- tar xf - -C /archive
+```
+
+- To migrate individual tenant data from multi-tenant deployments:
+
+```yaml
+tar cpf - -C &lt;temp-folder-path&gt; * | kubectl -n &lt;name-of-namespace&gt; exec -i &lt;target-audit-pod-name&gt; -- tar xf - -C /archive/&lt;storage-local-destination&gt;/&lt;tenant-name&gt;
+```
+
+Here is an example:
+
+```yaml
+tar cpf - -C /opt/tmpDir * | kubectl -n targetTenant exec -i sas-audit-59555d895-kzpcg -- tar xf - -C /archive/auditData/acme
+```
+</code></pre>
+</li>
+</ol>
+<p><strong>Note:</strong> The /archive/\<storage-local-destination>/\<tenant-name> folder location should already be present on the target PV. The <code>temp-folder-path</code> is the location where archived data is kept temporarily. The <code>storage-local-destination</code> value should be taken from the ‘sas.audit.archive.system.storage.local.destination’ Audit service configuration property of the target environment. The default value for this property is ‘/auditData’. The value is configurable so it is possible that you might have changed it from the default.
+<code>tenant-name</code> is the name of tenant whose migration is being done solely. Each tenant has folder created with tenant name to store their data separately in single Audit PV.</p>
+    </body>
+</html>

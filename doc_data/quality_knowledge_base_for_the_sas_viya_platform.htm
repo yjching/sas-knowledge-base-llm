@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Quality Knowledge Base for the SAS Viya platform</title>
+    </head>
+    <body>
+        <h1 id="140342938525504quality-knowledge-base-for-the-sas-viya-platform">Quality Knowledge Base for the SAS Viya platform</h1>
+<h2 id="140342938525504overview">Overview</h2>
+<p>This directory contains an example transformer that illustrates how to change the StorageClass and size of the PVC used to store the Quality Knowledge Base (QKB) in the SAS Viya platform.</p>
+<h2 id="140342938525504installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the file <code>sas-bases/examples/data-quality/storageclass/storage-class-transformer.yaml</code> and place it in your site-config directory.</p>
+</li>
+<li>
+<p>Replace the {{ QKB-STORAGE-CLASS }} value with your desired StorageClass. Note that the QKB requires that your storage class support the RWX accessMode.</p>
+</li>
+<li>
+<p>Also replace the {{ QKB-STORAGE-SIZE }} value with the size you wish to allocate to the QKB volume.  The recommended size is 8Gi.  Note that using a lower value may restrict your ability to add new QKBs to the SAS Viya platform; 1Gi is the absolute minimum required.</p>
+</li>
+<li>
+<p>After you edit the file, add a reference to it in the transformer block of the base kustomization.yaml file.</p>
+</li>
+</ol>
+<h2 id="140342938525504additional-resources">Additional Resources</h2>
+<p>For more information about using example files, see the <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform Deployment Guide</a>.</p>
+<p>For more information about Kubernetes StorageClasses, please see the <a href="https://kubernetes.io/docs/concepts/storage/storage-classes">Kubernetes Storage Class Documentation</a>.</p>
+    </body>
+</html>

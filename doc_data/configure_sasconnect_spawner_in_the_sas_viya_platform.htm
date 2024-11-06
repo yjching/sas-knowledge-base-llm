@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure SAS/CONNECT Spawner in the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937880416configure-sasconnect-spawner-in-the-sas-viya-platform">Configure SAS/CONNECT Spawner in the SAS Viya Platform</h1>
+<h2 id="140342937880416overview">Overview</h2>
+<p>This readme describes hows to customize your SAS Viya platform deployment to use 
+SAS/CONNECT Spawner.</p>
+<h2 id="140342937880416installation">Installation</h2>
+<p>SAS provides example and overlay files for customizations. Read the descriptions
+of the available tasks in the following sections. If you want to perform a
+task to customize your deployment, follow the instructions for it that follow
+in that section.</p>
+<h3 id="140342937880416disable-cloud-native-mode">Disable Cloud Native Mode</h3>
+<p>Perform these steps if cloud native mode should be disabled in your environment.</p>
+<ol>
+<li>
+<p>Add the following code to the configMapGenerator block of the base kustomization.yaml
+file:</p>
+<pre><code>```
+...
+configMapGenerator:
+...
+- name: sas-connect-spawner-config
+  behavior: merge
+  literals:
+    - SASCLOUDNATIVE=0
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342937880416enable-system-security-services-daemon-sssd-container">Enable System Security Services Daemon (SSSD) Container</h3>
+<p>Perform these steps if SSSD is required in your environment.</p>
+<ol>
+<li>Add sas-bases/overlays/sas-connect-spawner/add-sssd-container-transformer.yaml to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</li>
+</ol>
+<p><strong>Important:</strong> This line must come before any network transformers (that is, transformers starting with &ldquo;- sas-bases/overlays/network/&rdquo;) and the required transformer &ldquo;- sas-bases/overlays/required/transformers.yaml&rdquo;. Note that your configuration may not have network transformers if security is not configured.</p>
+<p>Here is an example for Full-stack TLS. If you are using a different version of TLS, or no TLS at all, the network transformers may be different or not present.</p>
+<pre><code>  ```
+  ...
+  transformers:
+  ...
+  - sas-bases/overlays/sas-connect-spawner/add-sssd-container-transformer.yaml
+  # The following lines are provided as a location reference, they should not be added if they don't appear.
+  - sas-bases/overlays/network/ingress/security/transformers/product-tls-transformers.yaml
+  - sas-bases/overlays/network/ingress/security/transformers/ingress-tls-transformers.yaml
+  - sas-bases/overlays/network/ingress/security/transformers/backend-tls-transformers.yaml
+  # The following line is provided as a location reference, it should appear only once and not be duplicated.
+  - sas-bases/overlays/required/transformers.yaml 
+  ...
+  ```
+</code></pre>
+<ol>
+<li>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</li>
+</ol>
+<h3 id="140342937880416add-a-custom-configuration-for-system-security-services-daemon-sssd">Add a Custom Configuration for System Security Services Daemon (SSSD)</h3>
+<p>Use these steps to provide a custom SSSD configuration to handle user authorization in your environment.</p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/sas-connect-spawner/external-sssd-config/add-sssd-configmap-transformer.yaml</code> file to <code>$deploy/site-config/sas-connect-spawner/external-sssd-config/add-sssd-configmap-transformer.yaml</code>.</p>
+</li>
+<li>
+<p>Modify the copied file according to the comments in it.</p>
+</li>
+<li>
+<p>Add site-config/sas-connect-spawner/external-sssd-config/add-sssd-configmap-transformer.yaml
+and sas-bases/overlays/sas-connect-spawner/ext-sssd-volume-transformer.yaml
+to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).
+Here is an example:</p>
+<pre><code>```
+...
+transformers:
+...
+-
+- site-config/sas-connect-spawner/external-sssd-config/add-sssd-configmap-transformer.yaml
+- sas-bases/overlays/sas-connect-spawner/ext-sssd-volume-transformer.yaml
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Copy your custom sssd configuration file to <code>$deploy/site-config/sas-connect-spawner/external-sssd-config/sssd.conf</code>.</p>
+</li>
+<li>
+<p>Add the following code to the secretGenerator block of the base kustomization.yaml
+file:</p>
+<pre><code>```
+...
+secretGenerator:
+...
+- name: sas-sssd-config
+  files:
+    - SSSD_CONF=site-config/sas-connect-spawner/external-sssd-config/sssd.conf
+  type: Opaque
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342937880416provide-external-access-to-sas-connect-spawner-via-a-load-balancer">Provide External Access to sas-connect-spawner via a Load Balancer</h3>
+<p>LoadBalancer assigns an IP address for the SAS/CONNECT Spawner and allows the
+standard port number to be used.</p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/sas-connect-spawner/enable-external-access/sas-connect-spawner-enable-loadbalancer.yaml</code> file to <code>$deploy/site-config/sas-connect-spawner/enable-external-access/sas-connect-spawner-enable-loadbalancer.yaml</code>.</p>
+</li>
+<li>
+<p>Modify the copied file according to the comments in it.</p>
+</li>
+<li>
+<p>Add a reference to the copied file to the resources block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre><code>```
+...
+resources:
+...
+- site-config/sas-connect-spawner/enable-external-access/sas-connect-spawner-enable-loadbalancer.yaml
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software as described in <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+<li>
+<p>Refer to <a href="http://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calencryptmotion&amp;docsetTarget=n1xdqv1sezyrahn17erzcunxwix9.htm&amp;locale=en#n14ebs8337o5t4n1hwm0bx5681o8">External Client Sign-On to TLS-Enabled SAS Viya SAS/CONNECT Spawner</a> when LoadBalancer is configured.</p>
+</li>
+</ol>
+<h3 id="140342937880416provide-external-access-to-sas-connect-spawner-via-a-nodeport">Provide External Access to sas-connect-spawner via a NodePort</h3>
+<p>NodePort assigns a port and routes traffic from that port to the SAS/CONNECT Spawner.
+A value can be selected from the allowed nodePort range and assigned in the yaml.
+This assignment prevents the SAS/CONNECT Spawner from starting if the selected port is
+already in use or is outside the allowable nodePort range.</p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/sas-connect-spawner/enable-external-access/sas-connect-spawner-enable-nodeport.yaml</code> file to <code>$deploy/site-config/sas-connect-spawner/enable-external-access/sas-connect-spawner-enable-nodeport.yaml</code>.</p>
+</li>
+<li>
+<p>Modify the copied file according to the comments in it.</p>
+</li>
+<li>
+<p>Add a reference to the copied file to the resources block of the base kustomization.yaml file. Here is an example:</p>
+<pre><code>```
+...
+resources:
+...
+- site-config/sas-connect-spawner/enable-external-access/sas-connect-spawner-enable-nodeport.yaml
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software as described in <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+<li>
+<p>Refer to <a href="http://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calencryptmotion&amp;docsetTarget=n1xdqv1sezyrahn17erzcunxwix9.htm&amp;locale=en#n14ebs8337o5t4n1hwm0bx5681o8">External Client Sign-On to TLS-Enabled SAS Viya SAS/CONNECT Spawner</a> when NodePort is configured.</p>
+</li>
+</ol>
+<h3 id="140342937880416allow-the-ability-to-spawn-servers-within-the-spawner-pod">Allow the Ability to Spawn Servers within the Spawner Pod</h3>
+<p>Beginning in 2021.2.1, the ability to spawn servers within the spawner pod has been removed from SAS/CONNECT Spawner.
+However, this capability may be re-introduced by applying the security settings in the enable-spawned-servers.yaml overlay.
+When spawning servers within the Spawner pod, SAS recommends enabling the connect workload class.
+Enabling the connect workload class implies that that there are nodes in the cluster that honor the SAS Viya platform workload node placement strategy for 
+the connect workload class.</p>
+<ol>
+<li>
+<p>Add sas-bases/overlays/sas-connect-spawner/enable-spawned-servers/enable-spawned-servers.yaml
+and sas-bases/overlays/sas-connect-spawner/enable-spawned-servers/use-connect-workload-class.yaml
+to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).
+Here is an example:</p>
+<pre><code>```
+...
+transformers:
+...
+- sas-bases/overlays/sas-connect-spawner/enable-spawned-servers/enable-spawned-servers.yaml
+- sas-bases/overlays/sas-connect-spawner/enable-spawned-servers/use-connect-workload-class.yaml
+...
+```
+</code></pre>
+</li>
+<li>
+<p>Deploy the software as described in <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+<li>
+<p>Disable the <code>-nolocallaunch</code> flag.</p>
+</li>
+<li>
+<p>If you are updating an existing deployment, go to SAS Environment Manager. Select Configuration, then SAS/CONNECT Spawner. In the contents field for sas.connect.spawner: startup_commands, remove -nolocallaunch from the USERMODS line and click Save.</p>
+</li>
+<li>
+<p>If you are performing a new deployment, you must take the same action that is described for an update, but it cannot be performed until after the software has been deployed.</p>
+</li>
+<li>
+<p>Refer to <a href="http://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calencryptmotion&amp;docsetTarget=n1xdqv1sezyrahn17erzcunxwix9.htm&amp;locale=en#n14ebs8337o5t4n1hwm0bx5681o8">External Client Sign-On to TLS-Enabled SAS Viya SAS/CONNECT Spawner</a> when NodePort is configured.</p>
+</li>
+</ol>
+<h2 id="140342937880416additional-resources">Additional Resources</h2>
+<p>For more information about configurations and using example and overlay files, see
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

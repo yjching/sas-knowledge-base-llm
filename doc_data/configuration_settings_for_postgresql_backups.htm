@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for PostgreSQL Backups</title>
+    </head>
+    <body>
+        <h1 id="140342937971200configuration-settings-for-postgresql-backups">Configuration Settings for PostgreSQL Backups</h1>
+<h2 id="140342937971200overview">Overview</h2>
+<p>PostgreSQL backups play a vital role in disaster recovery. Automatically scheduled backups and backup retention policies prevent unnecessary storage accumulation and further support disaster recovery. SAS installs Crunchy Data PostgreSQL servers with automatically scheduled backups and a retention policy. This README describes how to change the configuration settings of these backups.</p>
+<p><strong>Note:</strong> The backup settings here are for the internal Crunchy Data PostgreSQL pgBackRest utility, not for the SAS Backup Service.</p>
+<h2 id="140342937971200installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/crunchydata/backups/crunchy-pgbackrest-backup-config-transformer.yaml</code> into your <code>$deploy/site-config/crunchydata/</code> directory.</p>
+</li>
+<li>
+<p>Adjust the values in your copied file following the in-line comments.</p>
+</li>
+<li>
+<p>Add a reference to the file in the transformers block of the base kustomization.yaml (<code>$deploy/kustomization.yaml</code>), including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- site-config/crunchydata/crunchy-pgbackrest-backup-config-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<p><strong>Note:</strong> Avoid scheduling backups during times when the environment might be shut down, such as Saturday or Sunday if you regularly scale down your Kubernetes cluster on weekends.</p>
+<h2 id="140342937971200additional-resources">Additional Resources</h2>
+<p>For more information about deployment, see <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm&amp;locale=en">SAS Viya Platform Deployment Guide</a>.</p>
+<p>For more information about pgBackRest, see <a href="https://pgbackrest.org/user-guide-rhel.html">pgBackRest User Guide</a> and <a href="https://pgbackrest.org/command.html">pgBackRest Command Reference</a>.</p>
+    </body>
+</html>

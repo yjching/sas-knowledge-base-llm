@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Disabling and Enabling SAS Workload Orchestrator Service</title>
+    </head>
+    <body>
+        <h1 id="140342938049792disabling-and-enabling-sas-workload-orchestrator-service">Disabling and Enabling SAS Workload Orchestrator Service</h1>
+<h2 id="140342938049792overview">Overview</h2>
+<p>The SAS Workload Orchestrator Service consists of a set of manager
+pods controlled by the sas-workload-orchestrator statefulset and
+a set of server pods controlled by the sas-workload-orchestrator
+daemonset.</p>
+<p>This README file describes how to automatically disable (or enable)
+the SAS Workload Orchestrator Service by disabling (or enabling) the
+sas-workload-orchestrator statefulset and daemonset.</p>
+<h2 id="140342938049792instructions">Instructions</h2>
+<h3 id="140342938049792automatically-disable-the-sas-workload-orchestrator-service">Automatically Disable the SAS Workload Orchestrator Service</h3>
+<p>Because the SAS Workload Orchestrator Service is enabled by default,
+there is no action needed to automatically enable the statefulset
+and daemonset pods.</p>
+<p>You can automatically disable the SAS Workload Orchestrator Service
+by adding a patch transformer to the main kustomization.yaml
+file so that no statefulset pods and no daemonset pods are created.</p>
+<p>To automatically disable the service, add a reference to the disable patch
+transformer file into the transformers block of the base kustomization.yaml
+file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/examples/sas-workload-orchestrator/enable-disable/sas-workload-orchestrator-disable-patch-transformer.yaml</code></pre>
+
+<h3 id="140342938049792manually-disable-or-enable-the-sas-workload-orchestrator-service">Manually Disable or Enable the SAS Workload Orchestrator Service</h3>
+<p>Manually enable or disable the SAS Workload Orchestrator Service
+statefulset and daemonset pods by using the &lsquo;kubectl patch&rsquo;
+command along with supplied patch files. There are four files, two for
+enabling the daemonset and statefulset, and two for disabling the
+daemonset and statefulset.</p>
+<p>Since manually disabling or enabling of the SAS Workload Orchestrator Service
+is done from a machine that is running kubectl with access to the cluster,
+the files from <code>$deploy/sas-bases/examples/sas-workload-orchestrator/enable-disable</code>
+must be accessible on that machine either by mounting the examples directory to the
+machine or copying the files to the machine running the kubectl command.</p>
+<p>Both disabling and enabling manually require two kubectl patch commands, one for the
+sas-workload-orchestrator daemonset and one for the sas-workload-orchestrator statefulset.</p>
+<h4 id="140342938049792disabling">Disabling</h4>
+<ol>
+<li>
+<p>Terminate the daemonset pods:</p>
+<pre class="highlight"><code>kubectl patch daemonset sas-workload-orchestrator --patch-file /&lt;path&gt;/&lt;to&gt;/sas-workload-orchestrator-patch-daemonset-disable.yaml</code></pre>
+
+</li>
+<li>
+<p>Wait for daemonset pods to terminate, and then terminate the statefulset pods:</p>
+<pre class="highlight"><code>kubectl patch statefulset sas-workload-orchestrator --patch-file /&lt;path&gt;/&lt;to&gt;/sas-workload-orchestrator-patch-statefulset-disable.yaml</code></pre>
+
+</li>
+</ol>
+<h4 id="140342938049792enabling">Enabling</h4>
+<ol>
+<li>
+<p>Enable the statefulset pods:</p>
+<pre class="highlight"><code>kubectl patch statefulset sas-workload-orchestrator --patch-file /&lt;path&gt;/&lt;to&gt;/sas-workload-orchestrator-patch-statefulset-enable.yaml</code></pre>
+
+</li>
+<li>
+<p>Wait for both statefulset pods to become running, and then enable the daemonset pods:</p>
+<pre class="highlight"><code>kubectl patch daemonset sas-workload-orchestrator --patch-file /&lt;path&gt;/&lt;to&gt;/sas-workload-orchestrator-patch-daemonset-enable.yaml</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

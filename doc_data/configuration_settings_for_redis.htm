@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for Redis</title>
+    </head>
+    <body>
+        <h1 id="140342937457040configuration-settings-for-redis">Configuration Settings for Redis</h1>
+<h2 id="140342937457040overview">Overview</h2>
+<p>Redis is used as a distributed cache for SAS Viya platform services. This README file describes the settings available for deploying Redis.</p>
+<h2 id="140342937457040installation">Installation</h2>
+<p>The <code>redis-modify-memory.yaml</code> transformer file allows you to change the memory resources for Redis nodes. The default required value is 90Mi, and the default limit is 500Mi. The Redis &lsquo;maxmemory&rsquo; setting is set to 90% of the container memory limit. To change those values:</p>
+<ol>
+<li>
+<p>Copy the <code>$deploy/sas-bases/examples/redis/server/redis-modify-memory.yaml</code> file to <code>$deploy/sas-config/redis/server/redis-modify-memory.yaml</code>.</p>
+</li>
+<li>
+<p>The variables in the copied file are set
+off by curly braces and spaces, such as {{ MEMORY-LIMIT }}. Replace
+each variable string, including the braces, with the values you want to use. If you want to use the default for a variable, make no changes to that variable.</p>
+</li>
+<li>
+<p>After you have edited the file, add a reference to it in the transformers block
+of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an
+example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/redis/server/redis-modify-memory.yaml</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure rpy2 for SAS Model Repository Service</title>
+    </head>
+    <body>
+        <h1 id="140342938337824configure-rpy2-for-sas-model-repository-service">Configure rpy2 for SAS Model Repository Service</h1>
+<h2 id="140342938337824overview">Overview</h2>
+<p>The SAS Model Repository service provides support for registering, organizing, and managing models within a common model repository.
+This service is used by SAS Event Stream Processing, SAS Intelligent Decisioning, SAS Model Manager, Model Studio, SAS Studio, and SAS Visual Analytics. </p>
+<p>The Model Repository service also includes support for testing and deploying R models. 
+SAS environments such as CAS and SAS Micro Analytic Service do not support direct execution of R code. 
+Therefore, R models in a SAS environment are executed using Python with the rpy2 package. The rpy2 package enables Python to directly access the R libraries and execute R code.</p>
+<p>This README describes how to configure your Python and R environments to use the rpy2 package for executing models.</p>
+<h2 id="140342938337824prerequisites">Prerequisites</h2>
+<p>The SAS Viya platform provides YAML files that the Kustomize tool uses to configure Python and R. Before you use those files, you must perform the following tasks:</p>
+<p><strong>Note:</strong> For rpy2 to work properly, Python and R must be installed on the same system. They do not have to be mounted in the same volume. However, in order to use the R libraries, Python
+must have access to the directory that was set for the R_HOME environment variable.</p>
+<ol>
+<li>
+<p>Make note of the attributes for the volumes where Python and R, as well as their associated packages, are to be deployed. For example, for NFS, note the NFS server and directory. 
+   For more information about the various types of persistent volumes in Kubernetes, see <a href="#140342938337824additional-resources">Additional Resources</a>.</p>
+</li>
+<li>
+<p>Verify that R 3.4+ is installed on the R volume.</p>
+</li>
+<li>
+<p>Verify that Python 3.5+ and the requests package are installed on the Python volume.</p>
+</li>
+<li>
+<p>Verify that the R_HOME environment variable is set.</p>
+</li>
+<li>
+<p>Verify that rpy2 2.9+ is installed as a Python package.</p>
+<p><strong>Note:</strong> For information about the rpy2 package and version compatibilities, see the <a href="https://rpy2.github.io/doc/v3.0.x/html/overview.html">rpy2 documentation</a>.</p>
+</li>
+<li>
+<p>Verify that both the Python and R open-source configurations have been completed. For more information, see the README files in <code>$deploy/sas-bases/examples/sas-open-source-config/</code>.</p>
+</li>
+</ol>
+<h2 id="140342938337824installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/sas-model-repository/r</code> directory to the <code>$deploy/site-config/sas-model-repository/r</code> directory. 
+   Create the target directory, if it does not already exist.</p>
+</li>
+<li>
+<p>In rpy2-transformer.yaml replace the {{ R-HOME }} value with the R_HOME directory path. The value for the R_HOME path is the same as the DM_RHOME value in the kustomization.yaml file, which was specified as part of the R open-source configuration. 
+   That file is located in <code>$deploy/site-config/open-source-config/r/</code>.</p>
+<p>There are three sections in the rpy2-transformer.yaml file that you must update. </p>
+<p>Here is a sample of one of the sections before the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+# Add R_HOME Path
+  - op: add
+    path: /template/spec/containers/0/env/-
+    value:
+      name: R_HOME
+      value:  {{ R-HOME }}
+target:
+  kind: PodTemplate
+  name: sas-launcher-job-config</code></pre>
+
+<p>Here is a sample of the same section after the change:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+- op: add
+  path: /template/spec/containers/0/env/-
+  value:
+    name: R_HOME
+    value:  /share/nfsviyar/lib64/R
+target:
+  kind: PodTemplate
+  name: sas-launcher-job-config</code></pre>
+
+</li>
+<li>
+<p>In the cas-rpy2-transformer section of the rpy2-transformer.yaml file, update the CASLLP_99_EDMR value, as shown in this example.</p>
+<p>Here is the relevant code excerpt before the change:</p>
+<p><code>yaml
+ - op: add
+   path: /spec/controllerTemplate/spec/containers/0/env/-
+   value:
+     name: CASLLP_99_EDMR
+     value: {{ R-HOME }}/lib</code></p>
+<p>Here is the relevant code excerpt after the change:</p>
+<p><code>yaml
+ - op: add
+   path: /spec/controllerTemplate/spec/containers/0/env/-
+   value:
+     name: CASLLP_99_EDMR
+     value: /share/nfsviyar/lib64/R/lib</code></p>
+</li>
+<li>
+<p>Add site-config/sas-model-repository/r/rpy2-transformer.yaml to the transformers block to the base kustomization.yaml file in the <code>$deploy</code> directory.</p>
+<pre class="highlight"><code class="language-yaml">transformers: 
+- site-config/sas-model-repository/r/rpy2-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>Complete the deployment steps to apply the new settings. See <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a> in <em>SAS Viya Platform: Deployment Guide</em>.</p>
+<p><strong>Note:</strong> This overlay can be applied during the initial deployment of the SAS Viya platform or after the deployment of the SAS Viya platform.</p>
+<ul>
+<li>If you are applying the overlay during the initial deployment of the SAS Viya platform, complete all the tasks in the README files that you want to use, then run <code>kustomize build</code> to create and apply the manifests. </li>
+<li>If the overlay is applied after the initial deployment of the SAS Viya platform, run <code>kustomize build</code> to create and apply the manifests.</li>
+</ul>
+</li>
+</ol>
+<h2 id="140342938337824additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform Deployment Guide</a></li>
+<li><a href="http://documentation.sas.com/?cdcId=mdlmgrcdc&amp;cdcVersion=default&amp;docsetId=mdlmgrag">SAS Model Manager: Administrator&rsquo;s Guide</a></li>
+<li><a href="https://rpy2.github.io/doc/latest/html/index.html">rpy2 Documentation</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent volumes in Kubernetes</a></li>
+</ul>
+    </body>
+</html>

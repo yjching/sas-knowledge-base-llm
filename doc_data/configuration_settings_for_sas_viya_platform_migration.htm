@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for SAS Viya Platform Migration</title>
+    </head>
+    <body>
+        <h1 id="140342937690416configuration-settings-for-sas-viya-platform-migration">Configuration Settings for SAS Viya Platform Migration</h1>
+<h2 id="140342937690416overview">Overview</h2>
+<p>This README describes how to revise and apply the settings for configuring migration jobs.</p>
+<h2 id="140342937690416change-migration-job-timeout">Change Migration Job Timeout</h2>
+<ol>
+<li>
+<p>To change the migration job timeout value, edit the <code>$deploy/kustomization.yaml</code> file by adding an entry for the sas-restore-job-parameters configMap in the configMapGenerator block. The entry uses the following format, where {{ TIMEOUT-IN-MINUTES }} is an integer.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-restore-job-parameters
+  behavior: merge
+  literals:
+  - JOB_TIME_OUT={{ TIMEOUT-IN-MINUTES }}</code></pre>
+
+<p>If the sas-restore-job-parameters configMap is already present in the base kustomization.yaml file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash"> kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937690416filter-configuration-definition-properties">Filter Configuration Definition Properties</h2>
+<ol>
+<li>
+<p>To skip the migration of the configuration definition properties, edit the <code>$deploy/kustomization.yaml</code> file by adding an entry for the sas-restore-job-parameters configMap in the configMapGenerator block. The entry uses the following format.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-restore-job-parameters
+  behavior: merge
+  literals:
+  - RESTORE_DEFINITION_FILTER={{ RESTORE-DEFINITION-FILTER-CSV }}</code></pre>
+
+<p>The {{ RESTORE-DEFINITION-FILTER-CSV }} is a json string containing the comma-separated list of &lsquo;key:value&rsquo; pairs where key is in the form &lsquo;serviceName.definitionName.version&rsquo; and value itself can be a comma-separated list of properties to be filtered. If the entire definition is to be excluded, then set the value to &lsquo;*&rsquo;. If the service name is not present in the definition then only provide &lsquo;definitionName&rsquo;. Each key and value must be enclosed in double quotes (&ldquo;). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-restore-job-parameters
+  behavior: merge
+  literals:
+  - RESTORE_DEFINITION_FILTER='{"sas.dataserver.common.1":"*","deploymentBackup.sas.deploymentbackup.1":"*","deploymentBackup.sas.deploymentbackup.2":"*","deploymentBackup.sas.deploymentbackup.3":"*","sas.security.1":"*","vault.sas.vault.1":"*","vault.sas.vault.2":"*","SASDataExplorer.sas.dataexplorer.1":"*","SASLogon.sas.logon.sas9.1":"*","sas.cache.1":"*","sas.cache.2":"*","sas.cache.3":"*","sas.cache.4":"*","identities-SASLogon.sas.identities.providers.ldap.user.1":"accountId,address.country","SASLogon.sas.logon.saml.providers.external_saml.1":"assertionConsumerIndex,idpMetadata"}'</code></pre>
+
+<p>If the sas-restore-job-parameters configMap is already present in the base kustomization.yaml file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash"> kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937690416filter-configuration-properties">Filter Configuration Properties</h2>
+<ol>
+<li>
+<p>To skip the migration of the configuration properties, edit the <code>$deploy/kustomization.yaml</code> file by adding an entry for the sas-restore-job-parameters configMap in the configMapGenerator block. The entry uses the following format.</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-restore-job-parameters
+  behavior: merge
+  literals:
+  - RESTORE_CONFIGURATION_FILTER={{ RESTORE-CONFIGURATION-FILTER-CSV }}</code></pre>
+
+<p>The {{ RESTORE-CONFIGURATION-FILTER-CSV }} is a json string containing the comma-separated list of &lsquo;key:value&rsquo; pairs where key is in the form &lsquo;serviceName.configurationMediaType&rsquo; and value itself can be a comma-separated list of properties to be filtered. If the entire configuration is to be excluded, then set the value to &lsquo;*&rsquo;. If the service name is not present in the configuration, then use the media type. Each key and value must be enclosed in double quotes (&ldquo;). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-restore-job-parameters
+  behavior: merge
+  literals:
+  - RESTORE_CONFIGURATION_FILTER='{"postgres.application/vnd.sas.configuration.config.sas.dataserver.conf+json;version=1":"*","maps-reportPackages-webDataAccess.application/vnd.sas.configuration.config.sas.maps+json;version=2":"useArcGISOnlineMaps,localEsriServicesUrl"}'</code></pre>
+
+<p>If the sas-restore-job-parameters configMap is already present in the base kustomization.yaml file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash"> kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937690416modify-the-resources-of-the-migration-job">Modify the Resources of the Migration Job</h2>
+<p>If the default resources are not sufficient for the completion or successful execution of the migration job, modify the resources to the values you desire.</p>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/migration/configure/sas-migration-job-modify-resources-transformer.yaml</code>
+to a location of your choice under <code>$deploy/site-config</code>, such as <code>$deploy/site-config/migration</code>.</p>
+</li>
+<li>
+<p>In the copied file, replace {{ CPU-LIMIT }} with the desired value of CPU.
+{{ CPU-LIMIT }} must be a non-zero and non-negative numeric value, such as &ldquo;3&rdquo; or &ldquo;5&rdquo;.
+You can specify fractional values for the CPUs by using decimals, such as &ldquo;1.5&rdquo; or &ldquo;0.5&rdquo;.</p>
+</li>
+<li>
+<p>In the same file, replace {{ MEMORY-LIMIT }} with the desired value of memory.
+{{ MEMORY-LIMIT }} must be a non-zero and non-negative numeric value followed by &ldquo;Gi&rdquo;. For example, &ldquo;8Gi&rdquo; for 8 gigabytes.</p>
+</li>
+<li>
+<p>Add the full path of the copied file to the transformers block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). For example, if you
+moved the file to <code>$deploy/site-config/migration</code>, you would modify the
+base kustomization.yaml file like this:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/migration/sas-migration-job-modify-resources-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash"> kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

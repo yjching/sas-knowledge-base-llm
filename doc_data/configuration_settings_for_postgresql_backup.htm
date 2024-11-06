@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for PostgreSQL Backup</title>
+    </head>
+    <body>
+        <h1 id="140342946049952configuration-settings-for-postgresql-backup">Configuration Settings for PostgreSQL Backup</h1>
+<h2 id="140342946049952overview">Overview</h2>
+<p>This README describes how to revise and apply the settings for
+backing up PostgreSQL.</p>
+<h2 id="140342946049952add-additional-options-for-postgresql-backup-command">Add Additional Options for PostgreSQL Backup Command</h2>
+<ol>
+<li>
+<p>If you need to add or change any option for the PostgreSQL backup command (pg_dump), add an entry to the sas-backup-job-parameters configMap in the configMapGenerator block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p><pre class="highlight"><code class="language-yaml">configMapGenerator:
+- name: sas-backup-job-parameters
+  behavior: merge
+  literals:
+  - SAS_DATA_SERVER_BACKUP_ADDITIONAL_OPTIONS={{ OPTION-1-NAME OPTION-1-VALUE }},{{ FLAG-1 }},{{ OPTION-2-NAME OPTION-2-VALUE }}</code></pre>
+ The {{ OPTION-NAME OPTION-VALUE }} and {{ FLAG }} variables should be a comma-separated list of options to be added, such as <code>-Z 0,--version</code>.</p>
+<p>If the sas-backup-job-parameters configMap is already present in the (<code>$deploy/kustomization.yaml</code>) file, you should add the last line only. If the configMap is not present, add the entire example.</p>
+</li>
+<li>
+<p>Build the manifest.</p>
+<pre class="highlight"><code class="language-bash">kustomize build -o site.yaml</code></pre>
+
+</li>
+<li>
+<p>Apply the manifest.</p>
+<pre class="highlight"><code class="language-bash">kubectl apply --selector="sas.com/admin in (cluster-api,cluster-wide,cluster-local,namespace)" -f site.yaml --server-side --force-conflicts</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

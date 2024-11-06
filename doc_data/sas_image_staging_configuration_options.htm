@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>SAS Image Staging Configuration Options</title>
+    </head>
+    <body>
+        <h1 id="140342938777104sas-image-staging-configuration-options">SAS Image Staging Configuration Options</h1>
+<h2 id="140342938777104overview">Overview</h2>
+<p>SAS Image Staging ensures images are pulled to and staged properly on respective nodes
+in an effort to decrease start-up times of various SAS Viya platform components. This README
+describes how to customize your SAS Viya platform deployment for tasks related to SAS Image
+Staging.</p>
+<p>SAS provides the ability to modify the behavior of the SAS Image Staging application
+to fit the needs of specific environments.</p>
+<p>This README describes two areas that can be configured, the mode of operation and the check
+interval.</p>
+<h2 id="140342938777104sas-image-staging-requirements">SAS Image Staging Requirements</h2>
+<p>SAS Image Staging requires that Workload Node Placement (WNP) be used. Specifically, at
+least one node in the Kubernetes cluster be labeled &ldquo;workload.sas.com/class=compute&rdquo; in
+order for SAS Image Staging to function properly.</p>
+<p>If WNP is not used, the SAS Image Staging application will not pre-stage images.
+Timeouts can occur when images are pulled into the cluster the first time or when the
+image is removed from the image cache and the image needs to be
+pulled again for use.</p>
+<p>For more information about WNP, see <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p0om33z572ycnan1c1ecfwqntf24.htm">Plan the Workload Placement</a>.</p>
+<h2 id="140342938777104modes-of-operation">Modes of Operation</h2>
+<p>The default behavior of SAS Image Staging is to start pods on nodes via a daemonset
+at interval to ensure that relevant images have been pulled to hosts. While this
+default behavior accomplishes the goal of pulling images to nodes and decreasing
+start-up times, some users may want more intelligent and specific control with less
+churn in Kubernetes.</p>
+<p>In order for the non-default option described in this README to function, the SAS
+Image Staging application must have the ability to list nodes. The nodes resource is
+cluster-scoped and resides outside of the SAS Viya platform namespace. Requirements may not
+allow for this sort of access, and default namespace-scoped resources do not provide
+the view needed for this option to work.</p>
+<p>The SAS Image Staging application uses the list of nodes to determine which images are
+currently pulled to the node and their respective version. If an image is
+missing or a different version exists on the node, the SAS Image Staging application
+will target that node for a pull of the image instead of starting daemonsets
+to pull images.</p>
+<p>Regardless of the mode of operation, it is normal to see a number of pods that contain
+the word &ldquo;prepull&rdquo; in their name. The name and frequency in which these pods show up
+depend on the mode of operation used. These pods are transient and are used to pull
+images to respective nodes.</p>
+<h3 id="140342938777104advantages-and-disadvantages-of-the-two-options">Advantages and Disadvantages of the Two Options</h3>
+<h4 id="140342938777104daemonset-default-behavior">Daemonset (Default Behavior)</h4>
+<p>Advantages:</p>
+<ul>
+<li>No need for ClusteRole and ClusterRoleBindings that allow access to cluster-scoped
+resources and verbs (nodes and list respectively).</li>
+<li>No modifications via the example described in this README.</li>
+</ul>
+<p>Disadvantages:</p>
+<ul>
+<li>Slower to pull, especially when nodes are added since there is no way to target
+specific nodes via the namespace scope. At most, a pull requires two minutes plus the
+time it takes to pull the image to a node.</li>
+<li>Produces more churn in Kubernetes because daemonsets are firing up to make
+sure images are pulled to labeled nodes.</li>
+<li>Produces more log output in SAS Image Staging pod.</li>
+</ul>
+<h4 id="140342938777104node-list-optional-behavior">Node List (Optional Behavior)</h4>
+<p>Advantages:</p>
+<ul>
+<li>Quicker to pull. A pull requires 30 seconds plus the time it takes to pull the image
+to a node.</li>
+<li>Less churn since specific nodes are targeted for pulls.</li>
+<li>Less log output in SAS Image Staging Pod.</li>
+</ul>
+<p>Disadvantages:</p>
+<ul>
+<li>Applying the example file described in this README is an extra step from the default.</li>
+<li>This options requires that the sas-prepull service account, a namespaced account,
+has cluster-scoped access to resource node and verb list.</li>
+</ul>
+<h2 id="140342938777104installation">Installation</h2>
+<h3 id="140342938777104enable-the-node-list-option">Enable the Node List Option</h3>
+<p><code>$deploy/sas-bases/examples/sas-prepull</code> contains an example file named add-prepull-cr-crb.yaml.
+This example provides a resource to permit access to resource node and verb list for
+the namespaced sas-prepull service account.</p>
+<p>To enable the Node List Option:</p>
+<ol>
+<li>
+<p>Copy <code>$deploy/sas-bases/examples/sas-prepull/add-prepull-cr-crb.yaml</code> to
+<code>$deploy/site-config/sas-prepull/add-prepull-cr-crb.yaml</code>.</p>
+</li>
+<li>
+<p>Modify add-prepull-cr-crb.yaml by replacing all instances of &lsquo;{{ NAMESPACE }}&rsquo; with the
+namespace of the SAS Viya platform deployment where you want node and list access granted for the
+sas-prepull service account.</p>
+</li>
+<li>
+<p>Add site-config/sas-prepull/add-prepull-cr-crb.yaml to the resourcess block of the
+base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+resources:
+...
+- site-config/sas-prepull/add-prepull-cr-crb.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342938777104disable-the-node-list-option">Disable the Node List Option</h3>
+<ol>
+<li>
+<p>Remove site-config/sas-prepull/add-prepull-cr-crb.yaml from the resources block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). This is to ensure the option does not
+get applied in future Kustomize builds.</p>
+</li>
+<li>
+<p>If there are no other SAS Viya platform deployments in other namespaces in the cluster, execute
+<code>kubectl delete -f $deploy/site-config/sas-prepull/add-prepull-cr-crb.yaml</code> to remove the
+ClusterRole and ClusterRoleBinding from the cluster. If there are other SAS Viya platform deployments
+in other namespaces in the cluster, execute <code>kubectl delete clusterrolebinding sas-prepull-v2-{{ NAMESPACE }} -n {{ NAMESPACE }}</code>,
+where {{ NAMESPACE }} is the namespace of the deployment in which you want the ClusterRoleBinding
+removed.</p>
+</li>
+</ol>
+<h3 id="140342938777104check-interval">Check Interval</h3>
+<p>The check interval is the time the SAS Image Staging application pauses between checks for newer
+versions of images. By default, the check interval in Daemonset mode is 1 hour and the check
+interval for Node List mode is 30 secs. These defaults are reasonable given their operation and
+impact to an environment. However, you may wish to adjust the interval to further reduce churn
+in the environment. This section of the README describes how to make those interval adjustments.</p>
+<p>The interval is configured via two options located in the sas-prepull-parameters configmap. Those
+options are called SAS_PREPULL_DAEMON_INT and SAS_PREPULL_CRCRB_INT and control the intervals of
+Daemon Mode and Node List Mode respectively.</p>
+<h4 id="140342938777104modify-the-check-interval">Modify the Check Interval</h4>
+<p><code>$deploy/sas-bases/examples/sas-prepull</code> contains an example file named change-check-interval.yaml.
+This example provides a patch that will change the values for the intervals in the configmap
+referenced by the SAS Image Staging application.</p>
+<p>Steps to modify:</p>
+<ol>
+<li>
+<p>Copy <code>$deploy/sas-bases/examples/sas-prepull/change-check-interval.yaml</code> to
+<code>$deploy/site-config/sas-prepull/change-check-interval.yaml</code>.</p>
+</li>
+<li>
+<p>Modify change-check-interval.yaml by replacing all instances of &lsquo;{{ DOUBLE-QUOTED-VALUE-IN-SECONDS }}&rsquo;
+with the value in seconds for each respective mode. Note that the value must be wrapped in double quotes
+in order for Kustomize to appropriately reference the value.</p>
+</li>
+<li>
+<p>Add site-config/sas-prepull/change-check-interval.yaml to the transformers block of the
+base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/sas-prepull/change-check-interval.yaml
+...</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

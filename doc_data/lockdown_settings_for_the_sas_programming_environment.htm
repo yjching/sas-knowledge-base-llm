@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>LOCKDOWN Settings for the SAS Programming Environment</title>
+    </head>
+    <body>
+        <h1 id="140342937306832lockdown-settings-for-the-sas-programming-environment">LOCKDOWN Settings for the SAS Programming Environment</h1>
+<h2 id="140342937306832overview">Overview</h2>
+<p>This document describes the customizations that can be made by the Kubernetes
+administrator for managing the settings for the LOCKDOWN feature in the
+SAS Programming Environment.</p>
+<p>For more information about LOCKDOWN, see
+<a href="https://go.documentation.sas.com/?docsetId=calsrvpgm&amp;docsetTarget=p04d9diqt9cjqnn1auxc3yl1ifef.htm&amp;docsetVersion=v_008&amp;locale=en&amp;showBanner=walkup#p0sshm6ekdjiafn1jm5o0as6dsdr">LOCKDOWN System Option</a>.</p>
+<h2 id="140342937306832installation">Installation</h2>
+<p>Read the descriptions for the example files in the following list. If you
+want to use an example file to simplify customizing your deployment, copy
+the file to your <code>$deploy/site-config</code> directory.</p>
+<p>Each file has information about its content. The variables in the file are set
+off by curly braces and spaces, such as {{ AMOUNT-OF-STORAGE }}. Replace the
+entire variable string, including the braces, with the value you want to use.</p>
+<p>After you edit a file, add a reference to it in the transformers block of the
+base <code>kustomization.yaml</code> file.</p>
+<p>Here is an example using the enable LOCKDOWN access methods transformer, saved
+to <code>$deploy/site-config/sas-programming-environment/lockdown</code>:</p>
+<pre class="highlight"><code class="language-yaml">  transformers:
+  ...
+  - /site-config/sas-programming-environment/lockdown/enable-lockdown-access-methods.yaml
+  ...
+  ```
+
+## Examples
+
+The default behavior allows the following access methods to be enabled via
+LOCKDOWN:
+
+- HTTP
+- EMAIL
+- FTP
+- HADOOP
+- JAVA
+
+These settings can be toggled using the transformers in the example files.
+The example files are located at
+ `$deploy/sas-bases/examples/sas-programming-environment/lockdown`.
+
+- To enable access methods not included in the list above, such as PYTHON or
+PYTHON_EMBED, replace {{ ACCESS-METHOD-LIST }}
+in `enable-lockdown-access-methods.yaml`. For example,
+
+```yaml
+...
+patch : |-
+  - op: add
+    path: /data/VIYA_LOCKDOWN_USER_METHODS
+    value: "python python_embed"
+...</code></pre>
+
+<p><strong>NOTE:</strong> The names of the access methods are case-insensitive.</p>
+<ul>
+<li>To disable access methods from the default list, such as JAVA, replace
+the {{ ACCESS-METHOD-LIST }} in <code>disable-lockdown-access-methods.yaml</code> with a list
+of values to remove.  For example,</li>
+</ul>
+<pre class="highlight"><code class="language-yaml">...
+patch : |-
+  - op: add
+    path: /data/VIYA_LOCKDOWN_USER_DISABLED_METHODS
+    value: "java"
+...</code></pre>
+
+<p><strong>NOTE:</strong> The names of the access methods are case-insensitive.</p>
+<h2 id="140342937306832additional-resources">Additional Resources</h2>
+<p>For more information about deployment and using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

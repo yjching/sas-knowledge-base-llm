@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Granting Security Context Constraints for Migration on an OpenShift Cluster</title>
+    </head>
+    <body>
+        <h1 id="140342937666464granting-security-context-constraints-for-migration-on-an-openshift-cluster">Granting Security Context Constraints for Migration on an OpenShift Cluster</h1>
+<h2 id="140342937666464overview">Overview</h2>
+<p>The <code>$deploy/sas-bases/overlays/migration/openshift</code> directory contains a file to grant security context constraints (SCCs) for the sas-migration-job pod on an OpenShift cluster.
+<strong>Note:</strong> The security context constraint needs to be applied only if the backup is present on an NFS path.</p>
+<h2 id="140342937666464installation">Installation</h2>
+<ol>
+<li>Use one of the following commands to apply the SCCs.</li>
+</ol>
+<pre class="highlight"><code class="language-sh"># using kubectl
+kubectl apply -f migration-job-scc.yaml
+
+# using the OpenShift CLI
+oc create -f migration-job-scc.yaml</code></pre>
+
+<ol>
+<li>Use the following command to link the SCCs to the appropriate Kubernetes service account. Replace the entire variable {{ NAME-OF-NAMESPACE }}, including the braces, with the Kubernetes namespace used for SAS Viya.</li>
+</ol>
+<pre class="highlight"><code class="language-sh">oc -n {{ NAME-OF-NAMESPACE }} adm policy add-scc-to-user sas-migration-job -z sas-viya-backuprunner</code></pre>
+    </body>
+</html>

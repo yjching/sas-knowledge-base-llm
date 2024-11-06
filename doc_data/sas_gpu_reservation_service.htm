@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>SAS GPU Reservation Service</title>
+    </head>
+    <body>
+        <h1 id="140342938266112sas-gpu-reservation-service">SAS GPU Reservation Service</h1>
+<h2 id="140342938266112overview">Overview</h2>
+<p>The SAS GPU Reservation Service aids SAS processes in resource sharing and
+utilization of the Graphic Processing Units (GPUs) that are available in a
+Kubernetes Pod. It is available by default in every SAS Cloud Analytic Services
+(CAS) Pod, but it must be enabled in order to take advantage of the GPUs in
+your cluster.</p>
+<p>The SAS GPU Reservation Service is supported on all of the supported cloud platforms.
+If you are deploying on Microsoft Azure, refer to <a href="#140342938266112azure-configuration">Azure Configuration</a>,
+<a href="#140342938266112using-azure-cli-or-azure-portal">Using Azure CLI or Azure Portal</a>,
+<a href="#140342938266112using-sas-viya-infrastructure-as-code-for-microsoft-azure">Using SAS Viya Infrastructure as Code for Microsoft Azure</a>,
+and <a href="#140342938266112using-the-nvidia-device-plug-in">Using the NVIDIA Device Plug-In</a>.
+If you are deploying on a provider other than Microsoft Azure, refer to
+<a href="#140342938266112installing-the-nvidia-gpu-operator">Installing the NVIDIA GPU Operator</a>.</p>
+<p><strong><em>Note:</em></strong> If you are using Kubernetes 1.20 and later and you choose to use Docker
+as your container runtime, the NVIDIA GPU Operator is not needed.</p>
+<h2 id="140342938266112azure-configuration">Azure Configuration</h2>
+<p>If you are deploying the SAS Viya platform on Microsoft Azure, before you enable CAS to
+use GPUs, the Azure Kubernetes Service (AKS) cluster must be properly configured.</p>
+<p>The <code>cas</code> node pool must be configured with a properly sized N-Series Virtual Machine (VM).
+The N-Series VMs in Azure have GPU capabilities.</p>
+<h3 id="140342938266112using-azure-cli-or-azure-portal">Using Azure CLI or Azure Portal</h3>
+<p>If the <code>cas</code> node pool already exists, the VM node size cannot be changed.  The <code>cas</code> node
+pool must first be deleted and then re-created to the proper VM size and node count.</p>
+<p><strong>WARNING</strong>: Deleting a node pool on an actively running SAS Viya platform deployment will cause any CAS sessions
+to be prematurely terminated.  These steps should only be performed on an idle deployment.
+The node pool can be deleted and re-created using the Azure portal or the Azure CLI.</p>
+<pre class="highlight"><code class="language-bash">az aks nodepool delete --cluster-name &lt;replace-with-aks-cluster-name&gt; --name cas --resource-group &lt;replace-with-resource-group&gt;
+
+az aks nodepool add --cluster-name &lt;replace-with-aks-cluster-name&gt; --name cas --resource-group &lt;replace-with-resource-group&gt; --node-count &lt;replace with node count&gt; --node-vm-size "&lt;replace with N-Series VM&gt;" [--zones &lt;replace-with-availability-zone-number&gt;]</code></pre>
+
+<h3 id="140342938266112using-sas-viya-infrastructure-as-code-for-microsoft-azure">Using SAS Viya Infrastructure as Code for Microsoft Azure</h3>
+<p>SAS Viya 4 Infrastructure as Code (IaC) for Microsoft Azure <a href="https://github.com/sassoftware/viya4-iac-azure">(viya4-iac-azure)</a> contains Terraform scripts to provision Microsoft Azure Cloud infrastructure
+resources required to deploy SAS Viya platform products.  Edit the terraform.tfvars file and change the
+<code>machine_type</code> for the <code>cas</code> node pool to an N-Series VM.</p>
+<pre class="highlight"><code class="language-yaml">node_pools = {
+  cas = {
+    "machine_type" = "&lt;Change to N-Series VM&gt;"
+  ...
+  }
+},
+...</code></pre>
+
+<p>Verify the <code>cas</code> node pool was created and properly sized.</p>
+<pre class="highlight"><code class="language-bash">az aks nodepool list -g &lt;resource-group&gt; --cluster-name &lt;cluster-name&gt; --query '[].{Name:name, vmSize:vmSize}'</code></pre>
+
+<h3 id="140342938266112using-the-nvidia-device-plug-in">Using the NVIDIA Device Plug-In</h3>
+<p>An additional requirement in a Microsoft Azure environment is that the
+<a href="https://docs.microsoft.com/en-us/azure/aks/gpu-cluster">NVIDIA device plug-in</a> must be
+installed and configured. The example <code>nvidia-device-plugin-ds.yaml</code> manifest requires
+the following addition to the <code>tolerations</code> block so that the plug-in will be scheduled on
+to the CAS node pool.</p>
+<pre class="highlight"><code class="language-yaml">tolerations:
+...
+- key: workload.sas.com/class
+  operator: Equal
+  value: "cas"
+  effect: NoSchedule
+...</code></pre>
+
+<p>Create the <code>gpu-resources</code> namespace and apply the updated manifest to create the NVIDIA device plug-in DaemonSet.</p>
+<pre class="highlight"><code class="language-bash">kubectl create namespace gpu-resources
+kubectl apply -f nvidia-device-plugin-ds.yaml</code></pre>
+
+<h2 id="140342938266112installing-the-nvidia-gpu-operator">Installing the NVIDIA GPU Operator</h2>
+<p>Beginning with Kubernetes version 1.20, Docker was deprecated as the default container runtime in favor
+of the <a href="https://opencontainers.org/">ICO</a>-compliant <a href="https://kubernetes.io/blog/2017/11/containerd-container-runtime-options-kubernetes/#containerd">containerd</a>.
+In order to leverage GPUs using this new container runtime, install the
+<a href="https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/getting-started.html">NVIDIA GPU Operator</a>
+into the same cluster as the SAS Viya platform. After the NVIDIA GPU Operator is deployed into your
+cluster, proceed with enabling the SAS GPU Reservation Service.</p>
+<h2 id="140342938266112enable-the-sas-gpu-reservation-service">Enable the SAS GPU Reservation Service</h2>
+<p>The <code>cas-gpu-patch.yaml</code> file is located at
+<code>$deploy/sas-bases/examples/gpu</code>.</p>
+<ol>
+<li>
+<p>Copy <code>$deploy/sas-bases/examples/gpu/cas-gpu-patch.yaml</code> and <code>$deploy/sas-bases/examples/gpu/kustomizeconfig.yaml</code>
+   to <code>$deploy/site-config/gpu/</code>.</p>
+</li>
+<li>
+<p>In the copied <code>cas-gpu-patch.yaml</code> file, make the following changes:</p>
+<ul>
+<li>Revise the values for the resource requests and resource
+   limits so that they are the same and do not exceed the maximum number of GPU devices
+   on a single node.</li>
+<li>
+<p>In the cas-vars section, consider whether you require
+   a different level of information from the GPU process. The value for
+   SASGPUD_LOG_TYPE can be info, json, debug, or trace.</p>
+<p>After you have made your changes, save and close the revised file.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>After you edit the file, add the following references to the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>):</p>
+<ul>
+<li>Add the path to the patch file used as the first entry in the transformers block.</li>
+<li>Add the path to the <code>kustomizeconfig.yaml</code> file to the configurations block. If the configurations block does not exist yet, create it.</li>
+</ul>
+<p>Here are examples of these changes:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+- site-config/gpu/cas-gpu-patch.yaml
+
+...
+configurations:
+- site-config/gpu/kustomizeconfig.yaml</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938266112additional-resources">Additional Resources</h2>
+<p>For more information about using example files, see the
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for SAS Launcher Service</title>
+    </head>
+    <body>
+        <h1 id="140342938416896configuration-settings-for-sas-launcher-service">Configuration Settings for SAS Launcher Service</h1>
+<h2 id="140342938416896overview">Overview</h2>
+<p>This README file describes the settings available for deploying SAS Launcher
+Service.
+The example files described in this README file are located at
+&lsquo;/$deploy/sas-bases/examples/sas-launcher/configure&rsquo;.</p>
+<h2 id="140342938416896installation">Installation</h2>
+<p>Based on the following descriptions of available example files, determine if you
+want to use any example file in your deployment. If you do, copy the example
+file and place it in your site-config directory.</p>
+<h3 id="140342938416896process-limits">Process Limits</h3>
+<p>Example files are provided that contain suggested process limits based on your
+deployment size. There is a file provided for each of the two types of users,
+regular users and super users.</p>
+<ul>
+<li>Change process limit for non-super users (launcher-user-process-limit.yaml)</li>
+<li>Change process limit for super users (launcher-super-user-process-limit.yaml)</li>
+</ul>
+<p>Regular users (non-super users) have the following suggested defaults according
+to your deployment size:
+   * 10 (small)
+   * 25 (medium)
+   * 50 (large)</p>
+<p>Super users have the following suggested defaults according to your deployment
+size:
+   * 15 (small)
+   * 35 (medium)
+   * 65 (large) </p>
+<p>In the example files, uncomment the value you wish to keep, and comment out the
+rest. After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example using the transformer for regular users:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-launcher/configure/launcher-user-process-limit.yaml</code></pre>
+
+<h3 id="140342938416896configure-home-directories">Configure Home Directories</h3>
+<h4 id="140342938416896use-nfs-server-to-mount-home-directory">Use NFS Server To Mount Home Directory</h4>
+<p>The launcher-nfs-mount.yaml file allows you to change the location of the NFS
+server hosting the user&rsquo;s home directories. The path is determined by the
+Identities service.</p>
+<ol>
+<li>
+<p>Create the location site-config/sas-launcher/configure/.</p>
+</li>
+<li>
+<p>Copy the sas-bases/examples/sas-launcher/configure/launcher-user-homedirectory-volume.yaml file to the site-config/sas-launcher/configure/ location.</p>
+</li>
+<li>
+<p>In the file, replace {{ NFS-SERVER-LOCATION }} with the location of the NFS server. Here is an example: </p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+  - op: add
+    path: /template/metadata/annotations/launcher.sas.com~1nfs-server
+    value: myserver.nfs.com</code></pre>
+
+</li>
+<li>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-launcher/configure/launcher-nfs-mount.yaml</code></pre>
+
+</li>
+</ol>
+<p><strong>Note:</strong> If you are performing the tasks in this README before the initial deployment of your SAS Viya software,
+you should perform the next step after the deployment is completed. If you are updating an existing deployment, you
+should perform the next step now.</p>
+<ol>
+<li>In SAS Environment Manager, set the Identities identifier.homeDirectoryPrefix to the parent path to the home
+directory location on the NFS server.</li>
+</ol>
+<h4 id="140342938416896use-kubernetes-volumes-for-user-home-directories">Use Kubernetes Volumes for User Home Directories</h4>
+<p>The launcher-user-homedirectory-volume.yaml allows you to specify the runtime
+storage location of the user&rsquo;s home directory. The path is determined by the identities
+service and is mounted using the specified {{ VOLUME-STORAGE-CLASS }}.</p>
+<p><strong>Note:</strong> Using this feature overrides changes made for the <a href="#140342938416896use-nfs-server-to-mount-home-directory">Use NFS Server To Mount Home Directory</a> feature.</p>
+<ol>
+<li>
+<p>Create the location <code>site-config/sas-launcher/configure/</code>.</p>
+</li>
+<li>
+<p>Copy the sas-bases/examples/sas-launcher/configure/launcher-user-homedirectory-volume.yaml file to the <code>site-config/sas-launcher/configure/</code> location.</p>
+</li>
+<li>
+<p>In the file, replace {{ VOLUME-STORAGE-CLASS }} with the location of the volume storage call of your choice. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+  - op: add
+    path: /template/spec/volumes/-
+    value:
+      name: sas-launcher-userhome
+      nfs:
+        server: myserver.mycompany.com
+        path: /path/to/my/location</code></pre>
+
+</li>
+<li>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-launcher/configure/launcher-user-homedirectory-volume.yaml</code></pre>
+
+</li>
+</ol>
+<p><strong>Note:</strong> If you are performing the tasks in this README before the initial deployment of your SAS Viya software,
+you should perform the next step after the deployment is completed. If you are updating an existing deployment, you
+should perform the next step now.</p>
+<ol>
+<li>In SAS Environment Manager, set the Identities identifier.homeDirectoryPrefix to the parent path to mount the 
+home directory location in the pod.</li>
+</ol>
+<h3 id="140342938416896locale-and-encoding-defaults">Locale and Encoding Defaults</h3>
+<p>The launcher-locale-encoding-defaults.yaml file allows you to modify the SAS LOCALE and SAS ENCODING defaults.
+The defaults are stored in a Kubernetes ConfigMap called sas-launcher-init-nls-config, which the Launcher service will 
+use to determine which default values are needed to be set. The LOCALE and ENCODING defaults specified here will affect 
+all consumers of SAS Launcher (SAS Compute Server, SAS/CONNECT, and SAS Batch Server) unless overridden (see below). 
+To update the defaults, replace {{ LOCALE-DEFAULT }} and {{ ENCODING-DEFAULT }}. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+  - op: replace
+    path: /data/SAS_LAUNCHER_INIT_LOCALE_DEFAULT
+    value: en_US
+  - op: replace
+    path: /data/SAS_LAUNCHER_INIT_ENCODING_DEFAULT
+    value: utf8</code></pre>
+
+<p><strong>Note:</strong> For a list of the supported values for LOCALE and ENCODING, see <a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calsrvpgm&amp;docsetTarget=p04d9diqt9cjqnn1auxc3yl1ifef.htm#p1l37gkiso1lbxn1754hzpgbf67h">LOCALE, ENCODING, and LANG Value Mapping Table</a>.</p>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-launcher/configure/launcher-locale-encoding-defaults.yaml</code></pre>
+
+<p>The defaults from this ConfigMap can be overridden on individual launcher contexts. For more information on overriding 
+specific launcher contexts, see <a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=v_001LTS&amp;docsetId=calsrvpgm&amp;docsetTarget=n08vlobon8812gn11ija5pgjgjsy.htm">Change Default SAS Locale and SAS Encoding</a>.</p>
+<p>The defaults from this ConfigMap are also overridden by effective LOCALE and ENCODING values derived from an export 
+LANG=langValue statement that is present in a startup_commands configuration instance of sas.compute.server, 
+sas.connect.server, or sas.batch.server. For more information on setting or removing these statements, see <a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=v_001LTS&amp;docsetId=evfun&amp;docsetTarget=p19rd04uy9qnlkn10vwoajl66nxq.htm&amp;locale=en#n0p8gxdvtd6o8un16ky5a8z1u7io">Edit Server Configuration Instances</a>.</p>
+<p><strong>Note:</strong> When following links to SAS documentation, use the version number selector towards the left side of the header to select your currently deployed release version.</p>
+<h3 id="140342938416896requests-and-limits-for-cpu">Requests and Limits for CPU</h3>
+<p>The default values and maximum values for CPU requests and CPU limits can be specified
+in a Launcher service pod template. The launcher-cpu-requests-limits.yaml allows
+you to change these default and maximum values for the CPU resource. To update the defaults, replace the
+{{ DEFAULT-CPU-REQUEST }}, {{ MAX-CPU-REQUEST }}, {{ DEFAULT-CPU-LIMIT }}, and {{ MAX-CPU-LIMIT }} variables with the value you want to use. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1default-cpu-request
+    value: 50m
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1max-cpu-request
+    value: 100m
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1default-cpu-limit
+    value: "2"
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1max-cpu-limit
+    value: "2"</code></pre>
+
+<p><strong>Note:</strong> For details on the value syntax used above, see <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes">Resource units in Kubernetes</a></p>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-launcher/configure/launcher-cpu-requests-limits.yaml</code></pre>
+
+<p><strong>Note:</strong> The current example PatchTransformer targets all PodTemplates used by sas-launcher. If you only wish to target only one PodTemplate, update the PatchTransformer to target a specific PodTemplate name.</p>
+<h3 id="140342938416896requests-and-limits-for-memory">Requests and Limits for Memory</h3>
+<p>The default values and maximum values for memory requests and memory limits can be specified
+in a Launcher service pod template. The launcher-memory-requests-limits.yaml allows
+you to change these default and maximum values for the memory resource. To update the defaults, replace the
+{{ DEFAULT-MEMORY-REQUEST }}, {{ MAX-MEMORY-REQUEST }}, {{ DEFAULT-MEMORY-LIMIT }}, and {{ MAX-MEMORY-LIMIT }} variables with the value you want to use. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">patch: |-
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1default-memory-request
+    value: 300M
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1max-memory-request
+    value: 2Gi
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1default-memory-limit
+    value: 500M
+  - op: add
+    path: /metadata/annotations/launcher.sas.com~1max-memory-limit
+    value: 2Gi</code></pre>
+
+<p><strong>Note:</strong> For details on the value syntax used above, see <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes">Resource units in Kubernetes</a></p>
+<p>After you have edited the file, add a reference to it to the transformers
+block of the base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/sas-launcher/configure/launcher-memory-requests-limits.yaml</code></pre>
+
+<p><strong>Note:</strong> The current example PatchTransformer targets all PodTemplates used by sas-launcher. If you only wish to target only one PodTemplate, update the PatchTransformer to target a specific PodTemplate name.</p>
+    </body>
+</html>

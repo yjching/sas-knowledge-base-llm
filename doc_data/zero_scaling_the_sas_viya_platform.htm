@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Zero Scaling the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937970576zero-scaling-the-sas-viya-platform">Zero Scaling the SAS Viya Platform</h1>
+<h2 id="140342937970576deprecation-warning">Deprecation Warning</h2>
+<p>As of both the Stable and Long-Term Support releases of 2023.03, the zero-scale transformer is deprecated.
+It will be removed at Stable 2023.10 and Long-Term Support 2024.03.
+Use the sas-stop-all and sas-start-all CronJobs instead of the transformer option.</p>
+<h2 id="140342937970576overview">Overview</h2>
+<p>The SAS Viya platform has the capability to scale to zero the following processes. Scaling
+down a process also shuts it down.</p>
+<ul>
+<li>microservices</li>
+<li>CronJobs</li>
+<li>daemonsets</li>
+<li>stateful services<ul>
+<li>RabbitMQ</li>
+<li>Consul</li>
+<li>CAS</li>
+<li>internal instances of PostgreSQL</li>
+<li>Redis</li>
+</ul>
+</li>
+</ul>
+<p>When scaling down is complete, any storage provisioned by Kubernetes for the
+SAS Viya platform will still be active so the system can be scaled back up again.
+Additionally, scaling down does not stop active compute jobs.</p>
+<h2 id="140342937970576scale-down-process">Scale Down Process</h2>
+<h3 id="140342937970576initial-phase-phase-0">Initial Phase (Phase 0)</h3>
+<p>A series of kustomize transformers will scale the SAS Viya platform deployment
+to zero and back again. Note that even though SAS performs an ordered shutdown,
+this test ensures the operators are available to shut down the resources they own.</p>
+<p>Add <code>sas-bases/overlays/scaling/zero-scale/phase-0-transformer.yaml</code> to the
+transformers block in your base kustomization.yaml file. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/scaling/zero-scale/phase-0-transformer.yaml</code></pre>
+
+<p>To apply the change, run <code>kustomize build -o site.yaml</code>, then apply the updated
+<code>site.yaml</code> file to your deployment by running <code>kubectl apply --selector="sas.com/admin!=cluster-api" -f site.yaml</code>.</p>
+<p>After the deployment update has been applied, make sure that all CAS pods have
+terminated by running the following command as an administrator with namespace
+permissions:</p>
+<pre class="highlight"><code class="language-sh">kubectl -n &lt;name-of-namespace&gt; get pods --selector='app.kubernetes.io/managed-by=sas-cas-operator'</code></pre>
+
+<p>If the command&rsquo;s output is
+<code>No resources found in &lt;name-of-namespace&gt; namespace.</code> then all CAS pods have
+terminated, and you may continue to the next phase. Run the command until you
+receive the expected output before continuing to the next phase.</p>
+<p>SAS Event Stream Processing projects are dynamically created via the ESP
+Operator using a custom resource named ESPServer. ESPServer allows users to
+control the number of replicas of a ESP project by overriding the default value
+specified in the custom resource ESPConfig. To scale it down, delete the
+ESPServer:</p>
+<pre class="highlight"><code class="language-sh">kubectl delete espserver -n &lt;name-of-namespace&gt; --all</code></pre>
+
+<p>If you have internal instance of PostgreSQL, ensure all PostgreSQL pods have
+terminated by running the following command as an administrator with namespace
+permissions:</p>
+<pre class="highlight"><code class="language-sh">kubectl -n &lt;name-of-namespace&gt; wait --for=delete --selector="postgres-operator.crunchydata.com/data" pods</code></pre>
+
+<h3 id="140342937970576phase-1">Phase 1</h3>
+<p>Add the <code>sas-bases/overlays/scaling/zero-scale/phase-1-transformer.yaml</code> to the
+transformers block in your base kustomization.yaml file.</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/scaling/zero-scale/phase-0-transformer.yaml
+- sas-bases/overlays/scaling/zero-scale/phase-1-transformer.yaml</code></pre>
+
+<p>To apply the change, run <code>kustomize build -o site.yaml</code>, then apply the updated
+<code>site.yaml</code> to your deployment by running <code>kubectl apply --selector="sas.com/admin!=cluster-api" -f site.yaml</code>.</p>
+<h2 id="140342937970576scale-up-process">Scale Up Process</h2>
+<p>Run the following command as an administrator with namespace permissions:</p>
+<pre class="highlight"><code class="language-sh">kubectl -n &lt;name-of-namespace&gt; scale deployment --selector=sas.com/zero-scale-phase=1 --replicas=1</code></pre>
+
+<p>Check and wait until operators are running and ready with the following command:</p>
+<pre class="highlight"><code class="language-sh">kubectl -n &lt;name-of-namespace&gt; get deployment --selector=sas.com/zero-scale-phase=1</code></pre>
+
+<p>Remove the two transformers you added in the scale-down phase 1 steps. Run
+<code>kustomize build -o site.yaml</code>, then apply the updated <code>site.yaml</code> file to your
+deployment by running <code>kubectl apply --selector="sas.com/admin!=cluster-api" -f site.yaml</code>.</p>
+    </body>
+</html>

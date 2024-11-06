@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuring SAS Servers for Kerberos in SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342938340320configuring-sas-servers-for-kerberos-in-sas-viya-platform">Configuring SAS Servers for Kerberos in SAS Viya Platform</h1>
+<h2 id="140342938340320overview">Overview</h2>
+<p>This README describes the steps necessary to configure your SAS Viya platform
+SAS Servers to use Kerberos.</p>
+<h2 id="140342938340320prerequisites">Prerequisites</h2>
+<h3 id="140342938340320kerberos-configuration-file">Kerberos Configuration File</h3>
+<p>Before you start the deployment, obtain the Kerberos configuration file (krb5.conf) and
+keytab file for the HTTP service account.</p>
+<p>Edit the krb5.conf file and add <code>renewable = true</code> under the <code>[libdefaults]</code>
+section. This allows renewable Kerberos credentials to be used in SAS Viya platform. SAS servers
+will renew Kerberos credentials prior to expiration up to the renewable lifetime.
+Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">[libdefaults]
+  ...
+  renewable = true</code></pre>
+
+<h3 id="140342938340320keytab-file">Keytab File</h3>
+<p>Obtain a keytab file for the HTTP service account.</p>
+<p>If you are using SAS/CONNECT from external clients, such as SAS 9.X, obtain a
+keytab for the SAS service account. The HTTP service account and SAS service
+account can be placed in the same keytab file for convenience.  If you are using
+a single keytab file, the SAS service account should be placed before the HTTP
+service account in the keytab file.</p>
+<p>Make sure you have tested the keytab files before proceeding with the installation.</p>
+<h3 id="140342938340320kerberos-connections">Kerberos Connections</h3>
+<p>If you want to connect to the CAS Server from external clients through the
+binary or REST ports, you must also configure the CAS Server to accept direct
+Kerberos connections.</p>
+<p>If SAS/ACCESS Interface to Hadoop will be used with a Hadoop
+deployment that is Kerberos-protected, either nss_wrapper or System Security Services Daemon (SSSD)
+must be configured.  Unlike SSSD, nss_wrapper does not require running in a
+privilege elevated container.  If SAS/CONNECT is configured to spawn the SAS/CONNECT Server in the
+SAS/CONNECT Spawner pod, SSSD must be configured.</p>
+<h4 id="140342938340320nss_wrapper">nss_wrapper</h4>
+<p>To configure nss_wrapper, make the following changes to the base kustomization.yaml file in the $deploy
+directory.</p>
+<pre><code> - Add the following to the transformers block. These additions must come
+   before `sas-bases/overlays/required/transformers.yaml`.
+
+     ```yaml
+     transformers:
+     ...
+     - sas-bases/overlays/kerberos/nss_wrapper/add-nss-wrapper-transformer.yaml
+     ```
+</code></pre>
+<h4 id="140342938340320system-security-services-daemon-sssd">System Security Services Daemon (SSSD)</h4>
+<p>To configure SSSD for SAS Compute Server and SAS Batch
+Server, follow the instructions in <code>$deploy/sas-bases/examples/kerberos/sssd/README.md</code>
+(for Markdown format) or <code>$deploy/sas-bases/docs/docs/configure_system_security_services_daemon.htm</code>
+(for HTML format). For CAS, follow the instructions in <code>$deploy/sas-bases/examples/cas/configure/README.md</code>
+(for Markdown format) and <code>$deploy.sas-bases/docs/configuration_settings_for_cas.htm</code> (for HTML format).
+For SAS/CONNECT, follow the instructions in <code>$deploy/sas-bases/examples/sas-connect-spawner/README.md</code>
+(for Markdown format) or <code>$deploy/sas-bases/docs/configure_sasconnect_spawner_in_sas_viya.htm</code>
+(for HTML format).</p>
+<h3 id="140342938340320delegation">Delegation</h3>
+<p>The aim of configuring for Kerberos is to allow Kerberos authentication to
+flow into, between, and out from the SAS Viya platform environment. Allowing SAS servers
+to connect to other SAS Viya platform processes and third-party data sources on behalf of
+the user is referred to as <code>delegation</code>. SAS supports Kerberos Unconstrained
+Delegation, Kerberos Constrained Delegation, and Kerberos Resource-based Constrained
+Delegation.  Delegation should be configured prior to completing the installation steps below.</p>
+<p>The HTTP service account must be trusted for delegation. If you are using
+SAS/CONNECT, the SAS service account must also be trusted for delegation.</p>
+<ul>
+<li><a href="#140342938340320Configure-Kerberos-Unconstrained-Delegation">How to configure Kerberos Unconstrained
+Delegation</a></li>
+<li><a href="#140342938340320Configure-Kerberos-Constrained-Delegation">How to configure Kerberos Constrained
+Delegation</a></li>
+<li><a href="#140342938340320Configure-Kerberos-Resource-Based-Constrained-Delegation">How to configure Kerberos Resource-based
+Constrained Delegation</a></li>
+</ul>
+<h3 id="140342938340320stored-credentials">Stored Credentials</h3>
+<p>As an alternative method to Delegation, external credentials can be stored in an Authentication Domain.
+SAS uses the stored credentials to generate Kerberos credentials on the user&rsquo;s behalf. The default
+Authentication Domain is KerberosAuth. The Authentication Domain, whether default or custom, will need
+to be created in SAS Environment Manager. SAS recommends creating a Custom Group with shared external
+credentials and assigning the custom group to the created Authentication Domain.</p>
+<p>For more information about creating Authentication Domains, see <a href="https://documentation.sas.com/?cdcId=sasadmincdc&amp;cdcVersion=default&amp;docsetId=calcredentials&amp;docsetTarget=p1ntkxcd5ts4k1n1dboal0ywea70.htm">External Credentials: Concepts</a>.</p>
+<p><strong>Note:</strong> Stored user credentials take precedence over stored group credentials in the same Authentication Domain. For more information, see <a href="#140342938340320Configure-Kerberos-Stored-Credentials">How to configure Kerberos stored credentials</a>.</p>
+<h2 id="140342938340320installation">Installation</h2>
+<h3 id="140342938340320configure-sas-servers-for-kerberos-in-sas-viya-platform">Configure SAS Servers for Kerberos in SAS Viya Platform</h3>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/kerberos/sas-servers</code>
+directory to the <code>$deploy/site-config/kerberos/sas-servers</code> directory. Create
+the target directory, if it does not already exist.</p>
+</li>
+<li>
+<p>Copy your Kerberos keytab file and configuration files into the
+<code>$deploy/site-config/kerberos/sas-servers</code> directory, naming them <code>keytab</code> and
+<code>krb5.conf</code> respectively.</p>
+<p><strong>Note:</strong> A Kubernetes secret is generated during deployment using the content of the keytab binary file.
+ However, the SAS Viya Platform Deployment Operator and the viya4-deployment project do not support creating secrets from
+ binary files. For these types of deployments, the Kerberos keytab content must be loaded from an existing
+ Kubernetes secret. If you are using either of these deployment types, see <a href="https://go.documentation.sas.com/doc/en/sasadmincdc/default/calauthmdl/n1iyx40th7exrqn1ej8t12gfhm88.htm#p1bk7fvjzt9fahn1kllczegxicvi">Manually Configure a Kubernetes Secret for the Kerberos Keytab</a> for the steps.</p>
+</li>
+<li>
+<p>Replace {{ SPN }} in
+<code>$deploy/site-config/kerberos/sas-servers/configmaps.yaml</code> under the
+<code>sas-servers-kerberos-sidecar-config</code> stanza with the name of the
+principal as it appears in the keytab file.</p>
+</li>
+<li>
+<p>Make the following changes to the base kustomization.yaml file in the $deploy
+directory.</p>
+<ul>
+<li>
+<p>Add <code>site-config/kerberos/sas-servers</code> to the resources block.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/kerberos/sas-servers</code></pre>
+
+</li>
+<li>
+<p>Add the following to the transformers block. These additions must come
+   before <code>sas-bases/overlays/required/transformers.yaml</code>.</p>
+<ul>
+<li>
+<p>If TLS is enabled:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/kerberos/sas-servers/sas-kerberos-job-tls.yaml
+- sas-bases/overlays/kerberos/sas-servers/sas-kerberos-deployment-tls.yaml
+- sas-bases/overlays/kerberos/sas-servers/cas-kerberos-tls-transformer.yaml</code></pre>
+
+</li>
+<li>
+<p>If TLS is not enabled:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/kerberos/sas-servers/sas-kerberos-job-no-tls.yaml
+- sas-bases/overlays/kerberos/sas-servers/sas-kerberos-deployment-no-tls.yaml
+- sas-bases/overlays/kerberos/sas-servers/cas-kerberos-no-tls-transformer.yaml</code></pre>
+
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Follow the instructions in
+<code>$deploy/sas-bases/examples/kerberos/http/README.md</code> (for Markdown format) or
+<code>$deploy/sas-bases/docs/configuring_kerberos_single_sign-on_for_sas_viya.htm</code> (for
+HTML format) to configure Kerberos single sign-on. Specifically, in
+<code>$deploy/site-config/kerberos/http/configmaps.yaml</code> change
+<code>SAS_LOGON_KERBEROS_HOLDONTOGSSCONTEXT</code> to <code>true</code>.</p>
+</li>
+<li>
+<p>When all the SAS Servers are configured in the base kustomization.yaml file, use
+the deployment commands described in <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=
+dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm&amp;locale=en">SAS Viya Platform Deployment
+Guide</a> to apply
+the new settings.</p>
+</li>
+<li>
+<p>After the deployment is started, enable <code>Kerberos</code> in SAS Environment
+Manager.
+    1. Sign into SAS Environment Manager as sasboot or as an Administrator. Go
+to the Configuration page.
+    2. On the Configuration page, select <code>Definitions</code> from the list. Then
+select <code>sas.compute</code>.
+    3. Click the pencil (Edit) icon.
+    4. Change <code>kerberos.enabled</code> to <code>on</code>.
+    5. Click <code>Save</code>.</p>
+</li>
+</ol>
+<h3 id="140342938340320configure-the-cas-server-for-direct-kerberos-connections-in-sas-viya-platform">Configure the CAS Server for Direct Kerberos Connections in SAS Viya Platform</h3>
+<p>If you want to connect to the CAS Server from external clients through the
+binary port, perform the following steps in addition to the section above.</p>
+<ol>
+<li>
+<p>Copy the files in the <code>$deploy/sas-bases/examples/kerberos/cas-server</code>
+directory to the <code>$deploy/site-config/kerberos/cas-server</code> directory. Create
+the target directory, if it does not already exist.</p>
+</li>
+<li>
+<p>Copy your Kerberos keytab and configuration files into the
+<code>$deploy/site-config/kerberos/cas-server</code> directory, naming them <code>keytab</code> and
+<code>krb5.conf</code> respectively.</p>
+</li>
+<li>
+<p>Replace {{ SPN }} in
+<code>$deploy/site-config/kerberos/cas-server/configmaps.yaml</code> under the
+<code>cas-server-kerberos-config</code> stanza with the name of the service
+principal as it appears in the keytab file without the @DOMAIN.COM.</p>
+</li>
+<li>
+<p>Replace {{ HTTP_SPN }} with the HTTP SPN used for the krb5 proxy sidecar
+container without the @DOMAIN.COM.
+SAS recommends that you use the same keytab file and SPN for both the CAS
+Server and the krb5 proxy sidecar for consistency and to allow REST port direct
+Kerberos connections.</p>
+</li>
+<li>
+<p>Make the following changes to the base kustomization.yaml file in the $deploy
+directory.</p>
+<ul>
+<li>
+<p>Add <code>site-config/kerberos/cas-server</code> to the resources block.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- site-config/kerberos/cas-server</code></pre>
+
+</li>
+<li>
+<p>Add the following to the transformers block.  These additions must come
+   before <code>sas-bases/overlays/required/transformers.yaml</code>.</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/kerberos/sas-servers/cas-kerberos-direct.yaml</code></pre>
+
+</li>
+</ul>
+</li>
+<li>
+<p>Edit your <code>$deploy/site-config/kerberos/cas-server/krb5.conf</code> file. Add the
+following to the <code>[libdefaults]</code> section:</p>
+<pre class="highlight"><code class="language-bash">[libdefaults]
+...
+dns_canonicalize_hostname=false</code></pre>
+
+</li>
+</ol>
+<h3 id="140342938340320configure-sasconnect-for-direct-kerberos-connections-in-sas-viya-platform">Configure SAS/CONNECT for Direct Kerberos Connections in SAS Viya Platform</h3>
+<p>If you are using SAS/CONNECT from external clients, such as SAS 9.4, perform the
+following steps in addition to the section above.</p>
+<ol>
+<li>
+<p>Add a reference to
+sas-bases/overlays/kerberos/sas-servers/sas-connect-spawner-kerberos-transformer
+.yaml
+in the transformers block of the kustomization.yaml file in the $deploy
+directory.
+The reference must come before
+<code>sas-bases/overlays/required/transformers.yaml</code>. Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/kerberos/sas-servers/sas-connect-spawner-kerberos-transformer.yaml
+- sas-bases/overlays/required/transformers.yaml</code></pre>
+
+</li>
+<li>
+<p>Uncomment the <code>sas-connect-spawner-kerberos-secrets</code> stanza in
+<code>$deploy/site-config/kerberos/sas-servers/secrets.yaml</code>. If you are using
+separate keytab files for the HTTP service account and SAS service account,
+change the <code>keytab</code> name to the actual keytab file name in each stanza.</p>
+</li>
+<li>
+<p>Uncomment the <code>sas-connect-spawner-kerberos-config</code> stanza in
+<code>$deploy/site-config/kerberos/sas-servers/configmaps.yaml</code>.</p>
+<ul>
+<li>
+<p>Replace {{ SPN }} with the HTTP SPN from the keytab file without the
+   @DOMAIN.COM.</p>
+</li>
+<li>
+<p>If you are using separate keytab files for the HTTP service account and
+   SAS service account, change the <code>keytab</code> name to the actual keytab file name
+   in each stanza.  The keytab file name must match the name used in <code>secrets.yaml</code>
+   for step 2.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Edit your <code>$deploy/site-config/kerberos/sas-servers/krb5.conf</code> file. Add the
+following to the <code>[libdefaults]</code> section:</p>
+<pre class="highlight"><code class="language-bash">[libdefaults]
+...
+dns_canonicalize_hostname=false</code></pre>
+
+</li>
+</ol>
+<h3 id="140342938340320configure-kerberos-unconstrained-delegation">Configure Kerberos Unconstrained Delegation</h3>
+<p>If you are using MIT Kerberos as your KDC, then enabling delegation involves
+setting the flag <code>ok_as_delegate</code> on the principal.  For example, the following
+command adds this flag to the existing HTTP principal:</p>
+<pre class="highlight"><code class="language-bash">kadmin -q "modprinc +ok_as_delegate HTTP/mywebserver.company.com"</code></pre>
+
+<p>If you are using Microsoft Active Directory for your KDC, you must set the
+delegation option after registering the SPN.  The Active Directory Users and
+Computers GUI tool does not expose the delegation options until at least one SPN
+is registered against the service account.  The HTTP Service account must be
+able to delegate to any applicable data sources.</p>
+<ol>
+<li>
+<p>For the HTTP service account, as a Windows domain administrator, right-click
+the name and select <code>Properties</code>.</p>
+</li>
+<li>
+<p>In the <code>Properties</code> dialog, select the <code>Delegation</code> tab.</p>
+</li>
+<li>
+<p>On the <code>Delegation</code> tab, you must select <code>Trust this user for delegation to
+any services (Kerberos only).</code></p>
+</li>
+<li>
+<p>In the <code>Properties</code> dialog, select <code>OK</code>.</p>
+</li>
+</ol>
+<p>If you are using SAS/CONNECT, repeat the steps in this section for the SAS service account.</p>
+<h3 id="140342938340320configure-kerberos-constrained-delegation">Configure Kerberos Constrained Delegation</h3>
+<ol>
+<li>
+<p>In <code>$deploy/site-config/kerberos/http/configmaps.yaml</code>, set
+<code>SAS_LOGON_KERBEROS_HOLDONTOGSSCONTEXT</code> to <code>false</code>.</p>
+</li>
+<li>
+<p>In the <code>sas-servers-kerberos-sidecar-config</code> stanza of <code>$deploy/site-config/kerberos/sas-servers/configmaps.yaml</code>,
+add the following under <code>literals</code>:</p>
+<pre class="highlight"><code class="language-yaml">- SAS_CONSTRAINED_DELEG_ENABLED="true"</code></pre>
+
+</li>
+<li>
+<p>If you are using SAS/CONNECT, in the <code>sas-connect-spawner-kerberos-config</code>
+stanza, add the following under <code>literals</code>:</p>
+<pre class="highlight"><code class="language-yaml">- SAS_SERVICE_PRINCIPAL={{ SAS service account SPN }}
+- SAS_CONSTRAINED_DELEG_ENABLED="true"</code></pre>
+
+</li>
+</ol>
+<p>If you are using MIT Kerberos as your KDC, then enabling delegation involves
+setting the flag <code>ok_to_auth_as_delegate</code> on the principal.  For example, the
+following command adds the flag to the existing HTTP principal:</p>
+<pre class="highlight"><code class="language-bash">kadmin -q "modprinc +ok_to_auth_as_delegate HTTP/mywebserver.company.com"</code></pre>
+
+<p>If you are using Microsoft Active Directory for your KDC, you must set the
+delegation option after registering the SPN.  The Active Directory Users and
+Computers GUI tool does not expose the delegation options until at least one SPN
+is registered against the service account.  The HTTP Service account must be
+able to delegate to any applicable data sources.</p>
+<ol>
+<li>
+<p>For the HTTP service account, as a Windows domain administrator, right-click
+the account name and select <code>Properties</code>.</p>
+</li>
+<li>
+<p>In the <code>Properties</code> dialog, select the <code>Delegation</code> tab.</p>
+</li>
+<li>
+<p>On the <code>Delegation</code> tab, select <code>Trust this user for delegation to
+the specified services only</code> and <code>Use any authentication protocol</code>.</p>
+</li>
+<li>
+<p>Select <code>Add...</code></p>
+</li>
+<li>
+<p>In the <code>Add Services</code> panel, select <code>Users and Computers...</code></p>
+<ol>
+<li>
+<p>In the <code>Select Users or Computers</code> dialog box, complete the following for
+    the Kerberos-protected services that the SAS Servers access:</p>
+<pre><code>1. In the `Enter the object names to select` text box, enter the account
+   for the Kerberos protected services the SAS Server accesses, such as Microsoft
+   SQL Server.  Then, select `Check Names`.
+
+2. If the name is found, select `OK`.
+
+3. Repeat the previous two steps to select additional SPNs for the SAS
+   Servers to access.
+
+4. When you are done, select `OK`.
+</code></pre>
+</li>
+<li>
+<p>In the <code>Add Services</code> dialog box, select <code>OK</code>.</p>
+</li>
+</ol>
+</li>
+<li>
+<p>In the <code>Properties</code> dialog, select <code>OK</code>.</p>
+</li>
+</ol>
+<p>If you are using SAS/CONNECT, repeat the steps in this section for the SAS service account.</p>
+<h3 id="140342938340320configure-kerberos-resource-based-constrained-delegation">Configure Kerberos Resource-Based Constrained Delegation</h3>
+<ol>
+<li>
+<p>In <code>$deploy/site-config/kerberos/http/configmaps.yaml</code>, set
+<code>SAS_LOGON_KERBEROS_HOLDONTOGSSCONTEXT</code> to <code>false</code>.</p>
+</li>
+<li>
+<p>In the <code>sas-servers-kerberos-sidecar-config</code> stanza of <code>$deploy/site-config/kerberos/sas-servers/configmaps.yaml</code>,
+add the following under <code>literals</code>:</p>
+<pre class="highlight"><code class="language-yaml">- SAS_CONSTRAINED_DELEG_ENABLED="true"</code></pre>
+
+</li>
+<li>
+<p>If you are using SAS/CONNECT, in the <code>sas-connect-spawner-kerberos-config</code>
+stanza, add the following under <code>literals</code>:</p>
+<pre class="highlight"><code class="language-yaml">- SAS_SERVICE_PRINCIPAL={{ SAS service account SPN }}
+- SAS_CONSTRAINED_DELEG_ENABLED="true"</code></pre>
+
+</li>
+</ol>
+<p>Kerberos Resource-based Constrained Delegation can only be configured using
+Microsoft PowerShell.  Resource-based constrained delegation gives control of
+delegation to the administrator of the back-end service, therefore, the
+delegation permissions are applied on the back-end service being accessed.</p>
+<p><strong>Note:</strong> The examples below demonstrate adding a single identity that is trusted for
+delegation. To add multiple identities, use the format: <code>($identity1),($identity2)</code>.</p>
+<p>If the back-end service being accessed is running on Windows under the Local System account, then
+the front-end service principal is applied to the back-end service Computer Object.</p>
+<pre class="highlight"><code class="language-powershell">$sashttpidentity = Get-ADUser -Identity &lt;HTTP service account&gt;
+Set-ADComputer &lt;back-end service hostname&gt; -PrincipalsAllowedToDelegateToAccount $sashttpidentity</code></pre>
+
+<p>If the back-end servers being accessed is running on Unix/Linux or on Windows under a Domain Account,
+then the front-end service principal is applied to the Domain Account of the back-end
+service where the service principal is registered.</p>
+<pre class="highlight"><code class="language-powershell">$sashttpidentity = Get-ADUser -Identity &lt;HTTP service account&gt;
+Set-ADUser &lt;back-end service Domain Account&gt; -PrincipalsAllowedToDelegateToAccount $sashttpidentity</code></pre>
+
+<p>If you are using SAS/CONNECT, the HTTP service account must trust the SAS service account.</p>
+<pre class="highlight"><code class="language-powershell">$sasidentity = GetADUser -Identity &lt;SAS service account&gt;
+Set-ADUser &lt;HTTP service account&gt; -PrincipalsAllowedToDelegateToAccount $sasidentity</code></pre>
+
+<p>If you are using SAS/CONNECT and the back-end service is running on Windows under the Local System account, then
+the SAS service principal is applied to the back-end service Computer Object.</p>
+<pre class="highlight"><code class="language-powershell">$sasidentity = GetADUser -Identity &lt;SAS service account&gt;
+Set-ADComputer &lt;back-end service hostname&gt; -PrincipalsAllowedToDelegateToAccount $sasidentity</code></pre>
+
+<p>If you are using SAS/CONNECT and the back-end service is running on UNIX/Linux or on Windows under a Domain Account,
+then the SAS service principal is applied to the Domain Account of the back-end service where the principal
+is registered.</p>
+<pre class="highlight"><code class="language-powershell">$sasdentity = Get-ADUser -Identity &lt;SAS service account&gt;
+Set-ADUser &lt;back-end service Domain Account&gt; -PrincipalsAllowedToDelegateToAccount $sasidentity</code></pre>
+
+<h3 id="140342938340320configure-kerberos-stored-credentials">Configure Kerberos Stored Credentials</h3>
+<p>Configure the usage of stored credentials:</p>
+<ol>
+<li>
+<p>In the <code>sas-servers-kerberos-sidecar-config</code> block of <code>$deploy/site-config/kerberos/sas-servers/configmaps.yaml</code>, set the desired Authentication Domain to query for stored credentials.</p>
+<pre class="highlight"><code class="language-yaml">literals:
+...
+- SAS_KRB5_PROXY_CREDAUTHDOMAIN=KerberosAuth # Name of authentication domain to query for stored credentials</code></pre>
+
+</li>
+<li>
+<p>Uncomment these lines in the <code>sas-servers-kerberos-container-config</code> block of <code>$deploy/site-config/kerberos/sas-servers/configmaps.yaml</code>:</p>
+<pre class="highlight"><code class="language-yaml">literals:
+...
+- SAS_KRB5_PROXY_CHECKCREDSERVICE="true" # Set to true if SAS should prefer stored credentials over Constrained Delegation
+- SAS_KRB5_PROXY_LOOKUPINGROUP="true"    # Set to true if SAS should look for a group credential if no user credential is stored</code></pre>
+
+</li>
+</ol>
+    </body>
+</html>

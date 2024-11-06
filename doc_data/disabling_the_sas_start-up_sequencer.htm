@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Disabling the SAS Start-Up Sequencer</title>
+    </head>
+    <body>
+        <h1 id="140342937700000disabling-the-sas-start-up-sequencer">Disabling the SAS Start-Up Sequencer</h1>
+<h2 id="140342937700000overview">Overview</h2>
+<p>The SAS Start-Up Sequencer is configured to start pods in an predetermined, ordered sequence to ensure that pods are efficiently and effectively
+started in a manner that improves startup time.   This design ensures that certain components start before others and allows Kubernetes to pull container Images in a
+priority-based sequence.  It also provides a degree of resource optimization, in that resources are more efficiently spent during SAS Viya platform start-up with a
+priority given to starting essential components first.</p>
+<p>However, there may be cases where this optimization is not desired by an administrator.  For these cases, we provide the ability to disable this feature
+by applying a transformer that updates the components in your cluster that prevents the start sequencer functionality from executing. </p>
+<h2 id="140342937700000installation">Installation</h2>
+<p>Add <code>sas-bases/overlays/startup/disable-startup-transformer.yaml</code> to the transformers block in your base kustomization.yaml (<code>$deploy/kustomization.yaml</code>) file.  Ensure that ordered-startup-transformer.yaml is listed after <code>sas-bases/overlays/required/transformers.yaml</code>.</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/required/transformers.yaml
+- sas-bases/overlays/startup/disable-startup-transformer.yaml</code></pre>
+
+<p>To apply the change, perform the appropriate steps at <a href="https://go.documentation.sas.com/doc/en/itopscdc/default/dplyml0phy0dkr/p127f6y30iimr6n17x2xe9vlt54q.htm">Deploy the Software</a>.</p>
+    </body>
+</html>

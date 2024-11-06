@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>CAS Server for the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937739424cas-server-for-the-sas-viya-platform">CAS Server for the SAS Viya Platform</h1>
+<h2 id="140342937739424overview">Overview</h2>
+<p>This directory contains files to Kustomize your SAS Viya platform deployment to use a multi-node
+SAS Cloud Analytic Services (CAS) server, referred to as MPP.</p>
+<h2 id="140342937739424instructions">Instructions</h2>
+<h3 id="140342937739424edit-the-kustomizationyaml-file">Edit the kustomization.yaml File</h3>
+<p>In order to add this CAS server to your deployment, add a reference to the <code>cas-server</code> overlay
+to the resources block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<pre class="highlight"><code class="language-yaml">resources:
+- sas-bases/overlays/cas-server</code></pre>
+
+<h3 id="140342937739424modifying-the-number-of-cas-workers-mpp-only">Modifying the Number of CAS Workers (MPP Only)</h3>
+<p>On an MPP CAS Server, the number of workers helps determine the processing power
+of your cluster. The server is SMP by default which means there are no workers.
+The default number of workers in the cas-server overlay (0) can be modified by
+using  the <code>cas-manage-workers.yaml</code> example located in the cas examples directory
+at <code>/$deploy/sas-bases/examples/cas/configure</code>. The number of workers cannot exceed
+the number of nodes in your k8s cluster, so ensure that you have enough resources
+to accommodate the value you choose.</p>
+<h3 id="140342937739424additional-modifications">Additional Modifications</h3>
+<p>You can make modifications to the overlay through the use of
+Patch Transformers. Examples are located in <code>/$deploy/sas-bases/examples/cas/configure</code>,
+including how to add additional volume mounts and data connectors, modifying CAS
+server resource allocation, and changing the default PVC access modes.</p>
+<p>To be included in the manifest, any yaml files containing Patch Transformers must
+also be added to the transformers block of the base kustomization.yaml file:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- {{ PATCH-FILE-1 }}
+- {{ PATCH-FILE-2 }}</code></pre>
+
+<h3 id="140342937739424optional-cas-server-placement-configuration">Optional CAS Server Placement Configuration</h3>
+<p>If you have an environment where there are untainted nodes, the Kubernetes
+scheduler may consider them candidates for the CAS Server. You can use
+an additional overlay to restrict the scheduling of the
+CAS server to nodes that have the dedicated label.</p>
+<p>The dedicated label is <code>workload.sas.com/class=cas</code></p>
+<p>The label can be applied to a node with this command:</p>
+<p><code>kubectl label nodes node1 workload.sas.com/class=cas --overwrite</code></p>
+<p>To add the label to the CAS Server,
+add sas-bases/overlays/cas-server/require-cas-label.yaml
+to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/cas-server/require-cas-label.yaml
+...</code></pre>
+
+<h3 id="140342937739424cas-configuration-on-an-openshift-cluster">CAS Configuration on an OpenShift Cluster</h3>
+<p>The <code>/$deploy/sas-bases/examples/cas/configure</code> directory contains a file to
+grant Security Context Constraints for fsgroup 1001 on an OpenShift cluster. A
+Kubernetes cluster administrator should add these Security Context Constraints
+to their OpenShift cluster prior to deploying the SAS Viya platform. Use one of the
+following commands:</p>
+<p>Step 1:</p>
+<pre class="highlight"><code class="language-yaml">kubectl apply -f cas-server-scc.yaml</code></pre>
+
+<p>or</p>
+<pre class="highlight"><code class="language-yaml">oc create -f cas-server-scc.yaml</code></pre>
+
+<p>Step 2:</p>
+<p>After the SCC has been applied, you must link the SCC to the appropriate ServiceAccount that will use it.
+Perform the following command which corresponds to the appropriate host launch type:</p>
+<p>No host launch:
+oc -n {{ NAME-OF-NAMESPACE }} adm policy add-scc-to-user sas-cas-server -z sas-cas-server</p>
+<p>Host launch enabled:
+oc -n {{ NAME-OF-NAMESPACE }} adm policy add-scc-to-user sas-cas-server-host -z sas-cas-server</p>
+<p>Note: If you are enabling host launch, use the SecurityContexConstraint file
+cas-server-scc-host-launch.yaml instead of cas-server-scc.yaml. This file sets
+the correct capabilities and privilege escalation</p>
+<h3 id="140342937739424cas-auto-restart-during-version-updates">CAS Auto-Restart During Version Updates</h3>
+<p>By default, CAS does not automatically restart during version updates performed
+by the SAS Viya Platform Deployment Operator. The default prevents the disruption of active
+CAS sessions so that tables do not need to be reloaded. This default behavior can be changed by
+applying the <code>cas-auto-restart.yaml</code> example file located at <code>/$deploy/sas-bases/examples/cas/configure</code>.
+The example applies the autoRestart option to the pod spec.
+The deployment operator checks for this option on all existing CAS servers during
+software updates, and it automatically restarts servers that are tagged in this way.</p>
+<ol>
+<li>
+<p>Copy the <code>/$deploy/sas-bases/examples/cas/configure/cas-auto-restart.yaml</code>
+to the site-config directory.</p>
+</li>
+<li>
+<p>By default, the target for this patch applies to all CAS servers:</p>
+<pre class="highlight"><code class="language-yaml">target:
+  group: viya.sas.com
+  kind: CASDeployment
+  name: .*
+  version: v1alpha1</code></pre>
+
+<p>To target specific CAS servers, list the CAS servers to which the change should
+ be applied in the name field.</p>
+<pre class="highlight"><code class="language-yaml">target:
+  group: viya.sas.com
+  kind: CASDeployment
+  name: {{ NAME-OF-SERVER }}
+  version: v1alpha1</code></pre>
+
+</li>
+<li>
+<p>Add the <code>cas-auto-restart.yaml</code> file to the transformers section of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example that
+assumes the file was copied to the <code>$deploy/site-config/cas/configure</code> directory:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/cas/configure/cas-auto-restart.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>In order to validate that the auto-restart option has been enabled on for a CAS server, this command may be run:</p>
+<pre class="highlight"><code class="language-bash">kubectl -n &lt;name-of-namespace&gt; get pods &lt;cas-server-pod-name&gt; --show-labels</code></pre>
+
+<p>If the label <code>sas.com/cas-auto-restart=true</code> is visible, then the auto-restart option has been applied successfully.</p>
+</li>
+<li>
+<p>If you subsequently want to disable auto-restart then remove <code>cas-auto-restart.yaml</code> from your transformers list to disable auto-restart for any future CAS servers.  If you want to disable auto-restart on a CAS server that is already running, run the following command to disable auto-restart for that active server:</p>
+<pre class="highlight"><code class="language-bash">kubectl -n &lt;name-of-namespace&gt; label pods --selector=app.kubernetes.io/instance=&lt;cas-deployment-name&gt; sas.com/cas-auto-restart=false</code></pre>
+
+</li>
+</ol>
+<p><strong>Note:</strong> You cannot enable both CAS auto-restart and state transfer in the same SAS Viya platform deployment.</p>
+<p><strong>Note:</strong> Ideally this option should be set as a pre-deployment task. However, it can be applied to an already running CAS server, but that server must be manually restarted in order for the auto-restart option to be turned on.</p>
+<h2 id="140342937739424build">Build</h2>
+<p>After you configure Kustomize, continue your SAS Viya platform deployment as documented.</p>
+<h2 id="140342937739424additional-resources">Additional Resources</h2>
+<p>For more information about the difference between SMP and MPP CAS, see <a href="http://documentation.sas.com/?softwareId=mysas&amp;softwareVersion=prod&amp;docsetId=itopscon&amp;docsetTarget=n0tx1x9gu37i7qn1nuv8inwzrfet.htm&amp;locale=en#n0dj3c2j49krjhn1jho4z6daw5n1">What is the CAS Server, SMP, and MPP?</a>.</p>
+    </body>
+</html>

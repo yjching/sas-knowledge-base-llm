@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for PostgreSQL Storage</title>
+    </head>
+    <body>
+        <h1 id="140342937879504configuration-settings-for-postgresql-storage">Configuration Settings for PostgreSQL Storage</h1>
+<h2 id="140342937879504overview">Overview</h2>
+<p>PostgreSQL data is stored inside Kubernetes PersistentVolumeClaims (PVCs). This README describes how to adjust PostgreSQL PVC settings such as size and storage classes.</p>
+<p><strong>Important:</strong> Changing the storage class or access modes used for PostgreSQL-related PVCs after the initial SAS Viya platform deployment is not supported.</p>
+<h2 id="140342937879504installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/crunchydata/storage/crunchy-storage-transformer.yaml</code> into your <code>$deploy/site-config/crunchydata/</code> directory.</p>
+</li>
+<li>
+<p>Rename the copied file to something unique. SAS recommends following the naming convention <code>{{ CLUSTER-NAME }}-crunchy-storage-transformer.yaml</code>. For example, a copy of the transformer targeting Platform PostgreSQL could be named <code>platform-postgres-crunchy-storage-transformer.yaml</code>.</p>
+</li>
+<li>
+<p>Adjust the values in your copied file following the in-line comments.</p>
+</li>
+<li>
+<p>Add a reference to the file in the transformers block of the base kustomization.yaml (<code>$deploy/kustomization.yaml</code>), including adding the block if it doesn&rsquo;t already exist. The following example shows the content based on a file named <code>platform-postgres-crunchy-storage-transformer.yaml</code>:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- site-config/crunchydata/platform-postgres-crunchy-storage-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<p>For reference, SAS uses the following default values:</p>
+<ul>
+<li>
+<p>PostgreSQL PVCs</p>
+<ul>
+<li>Storage size - 128Gi</li>
+<li>Access mode - ReadWriteOnce</li>
+<li>Storage class - Default storage class in your Kubernetes cluster</li>
+</ul>
+</li>
+<li>
+<p>pgBackrest PVCs</p>
+<ul>
+<li>Storage size - 128Gi</li>
+<li>Access mode - ReadWriteOnce</li>
+<li>Storage class - Default storage class in your Kubernetes cluster</li>
+</ul>
+</li>
+</ul>
+<h2 id="140342937879504additional-resources">Additional Resources</h2>
+<p>For more information, see
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform Deployment Guide</a>.</p>
+    </body>
+</html>

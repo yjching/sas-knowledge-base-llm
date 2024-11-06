@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuration Settings for PostgreSQL Pod Resources</title>
+    </head>
+    <body>
+        <h1 id="140342937977568configuration-settings-for-postgresql-pod-resources">Configuration Settings for PostgreSQL Pod Resources</h1>
+<h2 id="140342937977568overview">Overview</h2>
+<p>This README describes how to adjust the CPU and memory usage of the PostgreSQL-related pods. The minimum for each of these values is described by their <strong>request</strong> and the maximum for each of these values is described by their <strong>limit</strong>.</p>
+<h2 id="140342937977568installation">Installation</h2>
+<ol>
+<li>
+<p>Copy the file <code>$deploy/sas-bases/examples/crunchydata/pod-resources/crunchy-pod-resources-transformer.yaml</code> into your <code>$deploy/site-config/crunchydata/</code> directory.</p>
+</li>
+<li>
+<p>Adjust the values in your copied file following the in-line comments. As a point of reference, the SAS defaults are as follows:</p>
+<pre class="highlight"><code class="language-yaml"># PostgreSQL values
+requests:
+  cpu: 150m
+  memory: 2Gi
+limits:
+  cpu: 8000m
+  memory: 8Gi
+
+# pgBackrest values
+requests:
+  cpu: 100m
+  memory: 256Mi
+limits:
+  cpu: 1000m
+  memory: 500Mi</code></pre>
+
+</li>
+<li>
+<p>Add a reference to the file in the transformers block of the base kustomization.yaml (<code>$deploy/kustomization.yaml</code>), including adding the block if it doesn&rsquo;t already exist:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+- site-config/crunchydata/crunchy-pod-resources-transformer.yaml</code></pre>
+
+</li>
+</ol>
+<h2 id="140342937977568additional-resources">Additional Resources</h2>
+<p>For more information, see <a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm&amp;locale=en">SAS Viya Platform Deployment Guide</a>.</p>
+<p>For more information about <strong>Pod CPU resource</strong> configuration, go <a href="https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/">here</a>.</p>
+<p>For more information about <strong>Pod memory resource</strong> configuration, go <a href="https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource/">here</a>.</p>
+    </body>
+</html>

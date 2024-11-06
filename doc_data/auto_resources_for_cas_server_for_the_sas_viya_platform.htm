@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Auto Resources for CAS Server for the SAS Viya Platform</title>
+    </head>
+    <body>
+        <h1 id="140342937692912auto-resources-for-cas-server-for-the-sas-viya-platform">Auto Resources for CAS Server for the SAS Viya Platform</h1>
+<h2 id="140342937692912overview">Overview</h2>
+<p>This directory contains files to Kustomize your SAS Viya platform deployment to enable automatic resource
+limit allocation.</p>
+<h2 id="140342937692912instructions">Instructions</h2>
+<h3 id="140342937692912edit-the-kustomizationyaml-file">Edit the kustomization.yaml File</h3>
+<p>In order to add this CAS server to your deployment, perform both of the following steps.</p>
+<p>First, add a reference to the <code>auto-resources</code> overlay to the resources block of the base
+kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).  This enables the ClusterRole and ClusterRoleBinding for the sas-cas-operator Service Account.</p>
+<pre class="highlight"><code class="language-yaml">resources:
+...
+- sas-bases/overlays/cas-server/auto-resources</code></pre>
+
+<p>Next, add the transformer to remove any hardcoded resource requests for CPU and memory from your CAS deployment. This allows the resources to be auto-calculated.</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/cas-server/auto-resources/remove-resources.yaml</code></pre>
+
+<h2 id="140342937692912build">Build</h2>
+<p>After you configure Kustomize, continue your SAS Viya platform deployment as documented.</p>
+    </body>
+</html>

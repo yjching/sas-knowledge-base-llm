@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configure a Default Topology for OpenSearch</title>
+    </head>
+    <body>
+        <h1 id="140342938039488configure-a-default-topology-for-opensearch">Configure a Default Topology for OpenSearch</h1>
+<h2 id="140342938039488overview">Overview</h2>
+<p>This README file describes the files used to specify and modify the topology to be used by the sas-opendistro operator.</p>
+<p><strong>Note:</strong> The default topology should be set according to the target environment and usage requirements.
+The transformer can reference an existing or custom topology.</p>
+<p><strong>Note:</strong> SAS terminology standards prohibit the use of the term &ldquo;master.&rdquo; However, this document refers to the term &ldquo;master node&rdquo; to maintain alignment with OpenSearch documentation.</p>
+<h2 id="140342938039488modifying-topologies">Modifying Topologies</h2>
+<p>The default installation topology consists of one OpenSearch node configured as both a master and a data node. Although this topology is acceptable for initial small scale data imports, configuration, and testing, SAS does not recommend that it be used in a production environment.</p>
+<p>The recommended production topology should consist of no less than three master nodes and no less than three data storage nodes. This topology provides the following benefits:</p>
+<ul>
+<li>High availability - Query loads are shared amongst the available data nodes.</li>
+<li>High resiliency - Failure of any one node does not bring down the service. Performance is degraded while the failed node is brought back online.</li>
+<li>Data resiliency - Data is redundantly shared amongst the data nodes. A failure of one data node, even complete corruption of its disks, does not result in any loss of data. When the failed node is brought back on line the data is reconstructed from duplicate copies on other nodes. </li>
+</ul>
+<h2 id="140342938039488migrating-to-production-setup">Migrating to Production Setup</h2>
+<p>If you wish to migrate your initial data from the initial setup to the production setup, you must modify the cluster topology in such a manner that no data or configuration is lost.</p>
+<p>One way of doing this is to transition your topology through an intermediate state into your final production state. Here is an example </p>
+<table>
+<thead>
+<tr>
+<th align="center">Initial State</th>
+<th align="center">Intermediate State</th>
+<th align="center">Final State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">[Master/Data Node]</td>
+<td align="center">[Master/Data Node]</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">[Master Node 1]</td>
+<td align="center">[Master Node 1]</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">[Master Node 2]</td>
+<td align="center">[Master Node 2]</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">[Master Node 3]</td>
+<td align="center">[Master Node 3]</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">[Data Node 1]</td>
+<td align="center">[Data Node 1]</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">[Data Node 2]</td>
+<td align="center">[Data Node 2]</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">[Data Node 3]</td>
+<td align="center">[Data Node 3]</td>
+</tr>
+</tbody>
+</table>
+<p>This example allows the cluster to copy the data stored on the Master/Data Node across to the data nodes. The migration will have to pause in the intermediate state for a period while the data is spread across the cluster. Depending on the volume of data, this should be completed within a few tens of minutes.</p>
+<h3 id="140342938039488migration-process">Migration Process</h3>
+<ol>
+<li>
+<p>Copy the <code>migrate-topology-step1.yaml</code> file into your site-config directory.</p>
+</li>
+<li>
+<p>Edit the example topology to reflect your desired topology:</p>
+<ul>
+<li>set the appropriate number of master nodes and data nodes</li>
+<li>set the heap size for each of the nodes - data nodes will need more heap space</li>
+<li>set the amount of disk space allowed to store the indexes</li>
+</ul>
+</li>
+<li>
+<p>Remove the following line from the transformers block of the base kustomization file (<code>$deploy/kustomization.yaml</code>) if it is present.</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/internal-elasticsearch/ha-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Add the topology reference to the transformers block of the base kustomization.yaml file.  Here is an example of a modified base kustomization.yaml file with a reference to the custom topology example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/configure-elasticsearch/internal/topology/migrate-topology-step1.yaml</code></pre>
+
+</li>
+<li>
+<p>Perform the commands to update the software. These are the same as the commands to originally deploy the software as outlined in <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=p127f6y30iimr6n17x2xe9vlt54q.htm">SAS Viya Platform: Deployment Guide: Deployment: Installation: Deploy the Software</a>.
+The important difference to note is that as you have now modified the <code>$deploy/kustomization.yaml</code> file to include your topology changes, the deployment process will not 
+perform a complete rebuild but will instead adapt the existing system to your new configuration. </p>
+</li>
+<li>
+<p>Once the new configuration has deployed, wait for the new servers to share out all the data.</p>
+</li>
+<li>
+<p>Repeat steps 1 through 5 using the <code>migrate-topology-step2.yaml</code> file. Ensure that you make the same modifications to the step2 file as you made in the step1 file.</p>
+</li>
+</ol>
+<h2 id="140342938039488topology-examples">Topology Examples</h2>
+<h3 id="140342938039488custom-topology-example">Custom Topology Example</h3>
+<p>The custom topology example should be used to define and customize highly available production OpenSearch deployments. See the example file located at 
+<code>sas-bases/examples/configure-elasticsearch/internal/topology/custom-topology.yaml</code>. </p>
+<h3 id="140342938039488single-node-topology-example">Single Node Topology Example</h3>
+<p>The single node topology example should not be used in production.  The single node topology is intended to minimize resources in development, demonstration, class, and test deployments.
+<code>sas-bases/examples/configure-elasticsearch/internal/topology/single-node-topology.yaml</code>.</p>
+<h2 id="140342938039488additional-configuration">Additional Configuration</h2>
+<p>In addition to the general cluster topology, properties such as the heap size and disk size of each individual node set can be adjusted depending on the  use case for the OpenSearch cluster, expected index sizes, shard numbers, and/or hardware constraints. </p>
+<h3 id="140342938039488configuring-the-volume-claim">Configuring the Volume Claim</h3>
+<p>When the volume claim&rsquo;s storage capacity is not specified in the node spec, the operator creates a PersistentVolumeClaim with a capacity of 128Gi for each node in the OpenSearch cluster by default. </p>
+<p>Similarly, when the volume claim&rsquo;s storage class is not specified in the node spec, the operator creates a PersistentVolumeClaim using either the default StorageClass for that OpenSearch cluster (if specified) or the default storage class for the Kubernetes cluster (see <code>sas-bases/examples/configure-elasticsearch/internal/storage/README.md</code> for instructions for configuring a default storage class for the OpenSearch cluster).</p>
+<p>To define your own volume claim template with your desired storage capacity and the Kubernetes storage class that is associated with the persistent volume, see the example file located at <code>sas-bases/examples/configure-elasticsearch/internal/topology/custom-topology-with-custom-volume-claim.yaml</code> . Replace {{ STORAGE-CLASS }} with the name of the StorageClass and {{ STORAGE-CAPACITY }} with the desired storage capacity for this volume claim.</p>
+<h3 id="140342938039488configuring-the-heap-size">Configuring the Heap Size</h3>
+<p>The amount of heap size dedicated to each node directly impacts the performance of OpenSearch. If the heap is too small, the garbage collection will cause frequent pauses, resulting in reduced throughput and regular small latency spikes. If the heap is too large, on the other hand, full-heap garbage collection may cause infrequent but long latency spikes.</p>
+<p>Generally, the heap size value should be up to half of the available physical RAM with a maximum of 32GB. </p>
+<p>The maximum heap size also affects the maximum number of shards that can be safely stored on the node without suffering from oversharding and circuit breaker events. As a rule of thumb you should aim for 20 shards or fewer per GB of heap memory with each shard not exceeding 50 GB. </p>
+<p>See <code>sas-bases/examples/configure-elasticsearch/internal/topology/custom-topology-with-custom-heap-size.yaml</code> for an example of how to configure the amount of heap memory dedicated to OpenSearch nodes. Replace {{ HEAP-SIZE }} with the appropriate heap size for your needs. </p>
+<h2 id="140342938039488installing-a-custom-topology">Installing a Custom Topology</h2>
+<ol>
+<li>
+<p>Copy the example topology file into your site-config directory.</p>
+</li>
+<li>
+<p>Edit the example topology as directed by comments in the file.</p>
+</li>
+<li>
+<p>Remove the following line from the transformers block of the base kustomization file (<code>$deploy/kustomization.yaml</code>) if it is present.</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- sas-bases/overlays/internal-elasticsearch/ha-transformer.yaml
+...</code></pre>
+
+</li>
+<li>
+<p>Add the topology reference to the transformers block of the base kustomization.yaml file.  Here is an example of a modified base kustomization.yaml file with a reference to the custom topology example:</p>
+<pre class="highlight"><code class="language-yaml">transformers:
+...
+- site-config/configure-elasticsearch/internal/topology/custom-topology.yaml</code></pre>
+
+</li>
+</ol>
+<h2 id="140342938039488additional-resources">Additional Resources</h2>
+<p>For more information, see
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm&amp;locale=en">SAS Viya Platform: Deployment Guide</a>.</p>
+    </body>
+</html>

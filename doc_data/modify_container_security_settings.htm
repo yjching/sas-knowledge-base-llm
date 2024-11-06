@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Modify Container Security Settings</title>
+    </head>
+    <body>
+        <h1 id="140342937847984modify-container-security-settings">Modify Container Security Settings</h1>
+<h2 id="140342937847984overview">Overview</h2>
+<p>This README describes customizations that can be made by the Kubernetes
+administrator to modify container security configurations while deploying the SAS Viya platform.
+An administrator might want or need to change the default container security settings in a SAS Viya platform
+deployment such as removing, adding, or updating settings in the podSpecs. There are many reasons why an
+administrator might want to modify these settings.</p>
+<p>The steps in this README for fsGroup and seccomp can
+be used for any platform. However, if you are deploying on Red Hat OpenShift, these settings must be modified in
+order to take advantage of OpenShift&rsquo;s built-in security context constraints (SCCs). The title of each section indicates whether it is required for OpenShift.</p>
+<h3 id="140342937847984what-is-an-scc">What is an SCC?</h3>
+<p>SCCs are the framework, provided by OpenShift, that controls what privileges can be requested by pods in the cluster.
+OpenShift provides users with several built-in SCCs. Admins can attach pods to any of these SCCs or they can create dedicated SCCs. Dedicated SCCs
+are created specifically to address the specs and capabilities required by a certain pod/product.
+For more information on OpenShift SCCs, see <a href="https://www.openshift.com/blog/managing-sccs-in-openshift">Managing SCCs in OpenShift</a>.</p>
+<h3 id="140342937847984purpose-of-the-customizations">Purpose of the Customizations</h3>
+<p>You can use the customizations in this file to accomplish the following required or optional tasks:</p>
+<ul>
+<li>
+<p>(OpenShift only) Adjust your podSpec to use one of the built-in SCCs and avoid creating a dedicated one.</p>
+<p>The &ldquo;restricted&rdquo; SCC, for example, is the primary built-in SCC that should control all pods. The restricted SCC is classified as the standard, and most pods should be able to run with it and validate against it.
+- Remove the seccomp profile settings from the podSpec.</p>
+<p>This step is required for OpenShift and optional for other environments. The restricted SCC does not allow this setting to be included in the podSpec.
+- Remove the fsGroup setting or update its value.</p>
+<p>This step is required for OpenShift and optional for other environments. The restricted SCC prevents you from setting fsGroup to a value outside of the allocated ID range. SAS has set it to a default value that enables the shared service account to access the file system. This shared account is invalid in the OpenShift restricted SCC.</p>
+<p>In OpenShift, every namespace/project has a dynamically allocated range of IDs that are used to prevent collisions between separate projects. Replace the fsGroup value with an ID from the allocated range.</p>
+<p>In other environments, removing the setting is an option when you are using a storage class provider that grants group-write access by default.</p>
+<p>Otherwise, the fsGroup value should be updated rather than removed.</p>
+</li>
+</ul>
+<p><strong>Note:</strong> Pods that run with dedicated SCCs for Crunchy Data (the internal PostgreSQL server) or the CAS server do not need the customizations referenced in this README. They have dedicated SCCs that will contain all conditions for the pods
+without altering the podSpec. You can use some of these customizations for OpenSearch. For more information, see <a href="http://documentation.sas.com/doc/en/itopscdc/default/itopssr/n18dxcft030ccfn1ws2mujww1fav.htm#p08n4ci5vnlaj7n1h9xefbnemeut">Security Requirements</a>.</p>
+<h2 id="140342937847984instructions">Instructions</h2>
+<h3 id="140342937847984fsgroup">fsGroup</h3>
+<p>The fsGroup field defines a special supplemental group that assigns a GID for all containers in the pod.
+Volumes that support ownership management are modified to be owned and writable by the GID specified in fsGroup.
+For more information about using fsGroup, see <a href="https://kubernetes.io/docs/tasks/configure-pod-container/security-context/">Configure a Security Context for a Pod or Container</a>.</p>
+<h4 id="140342937847984update-the-fsgroup-field-mandatory-for-openshift-optional-for-other-environments">Update the fsGroup Field (Mandatory for OpenShift; Optional for Other Environments)</h4>
+<p><strong>Notes:</strong> Crunchy Data currently does not support updating this value. Do not attempt to change this setting for an internal PostgreSQL server. Instead, custom SCCs grant the Crunchy Data Pods the ability to run with their specific group ID (GID).</p>
+<p>Updating this value for CAS is optional because CAS default settings work in all environments. If you want to update values for CAS, you must uncomment the corresponding PatchTransformer in the update-fsgroup.yaml file. If you are deploying on OpenShift, the corresponding SCC also must be updated to specify the new fsGroup values or be set to &ldquo;RunAsAny&rdquo;.</p>
+<p>Use these steps to update the fsGroup field for pods in your SAS Viya platform deployment.</p>
+<ol>
+<li>
+<p>Copy the <code>deploy/sas-bases/examples/security/container-security/update-fsgroup.yaml</code> file to the location of your working container security overlay,
+   such as <code>site-config/security/container-security/</code>.</p>
+</li>
+<li>
+<p>Update the &ldquo;{{ FSGROUP_VALUE }}&rdquo; tokens in the update-fsgroup.yaml file to match the desired group value.</p>
+<p><strong>Note:</strong> For OpenShift, you can get the allocated GID and value with the <code>kubectl describe namespace &lt;name-of-namespace&gt;</code> command. The value to use is the minimum value of the <code>openshift.io/sa.scc.supplemental-groups</code> annotation. For example, if the output is the following, you should use <code>1000700000</code>.</p>
+<pre class="highlight"><code class="language-yaml">Name:         sas-1
+Labels:       &lt;none&gt;
+Annotations:  ...
+              openshift.io/sa.scc.supplemental-groups: 1000700000/10000
+              ...</code></pre>
+
+</li>
+<li>
+<p>(Optional) Uncomment the PatchTransformer entries for CAS.</p>
+</li>
+<li>
+<p>(For )OpenShift) If you performed the optional configuration for CAS from Step 3, update the dedicated SCC for CAS to allow the desired fsGroup value. This value should match the value from Step 2 above, or it should be set to <code>RunAsAny</code>.</p>
+</li>
+<li>
+<p>Add the relative path of update-fsgroup.yaml to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/security/container-security/update-fsgroup.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h4 id="140342937847984remove-the-fsgroup-field-not-recommended-for-typical-deployment-scenarios">Remove the fsGroup Field (Not Recommended for Typical Deployment Scenarios)</h4>
+<p><strong>Note:</strong> Crunchy Data currently does not support removing this value. Pods for an internal PostgreSQL server will remain unaffected.</p>
+<p>To remove the fsGroup field from your deployment specification, add the relative path of the remove-fsgroup-transformer.yaml file
+to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/security/container-security/remove-fsgroup-transformer.yaml
+...</code></pre>
+
+<h3 id="140342937847984secure-computing-mode-seccomp">Secure Computing Mode (seccomp)</h3>
+<p>Secure computing mode (seccomp) is a security facility that restricts the actions that are available
+within a container. You can use this feature to restrict your application&rsquo;s access. For more information
+about seccomp, see <a href="https://docs.docker.com/engine/security/seccomp/">Seccomp security profiles for Docker</a>.</p>
+<h4 id="140342937847984update-the-seccomp-profile">Update the seccomp Profile</h4>
+<p>Considerations:</p>
+<ul>
+<li>Crunchy Data (the internal PostgreSQL server) and OpenSearch currently do not support updating this value and will remain unaffected.</li>
+<li>If you are deploying on OpenShift, do not update the seccomp profile, but instead remove it according to the instructions in the next section.</li>
+<li>If you are changing the seccomp profile to unconfined, do not update the seccomp profile, but instead remove it according to the instructions in the next section.</li>
+<li>If you are changing the seccomp profile to a locally-defined profile, be aware that SAS cannot claim support for all user-defined profiles. Additionally, not all of Viya supports using locally-defined profiles. This option is not recommended.</li>
+</ul>
+<p>Use these steps to update the seccomp profile enabled for pods in your deployment specification.</p>
+<ol>
+<li>
+<p>Copy the <code>deploy/sas-bases/examples/security/container-security/update-seccomp.yaml</code> file to the location of your working container security overlay.</p>
+<p>Here is an example: <code>site-config/security/container-security/update-seccomp.yaml</code></p>
+</li>
+<li>
+<p>Update the &ldquo;{{ SECCOMP_PROFILE }}&rdquo; tokens in the update-seccomp.yaml file to match the desired seccomp profile value.</p>
+</li>
+<li>
+<p>Add the relative path of update-seccomp.yaml to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>). Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- site-config/security/container-security/update-seccomp.yaml
+...</code></pre>
+
+</li>
+</ol>
+<h4 id="140342937847984remove-the-seccomp-profile-mandatory-for-openshift">Remove the seccomp Profile (Mandatory for OpenShift)</h4>
+<p>To remove the seccomp profile settings from your deployment specification, add the relative path of the
+remove-seccomp-transformer.yaml file to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<blockquote>
+<blockquote>
+<p><strong>IMPORTANT:</strong>  You must make this modification in an OpenShift environment.</p>
+</blockquote>
+</blockquote>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/security/container-security/remove-seccomp-transformer.yaml
+...</code></pre>
+    </body>
+</html>

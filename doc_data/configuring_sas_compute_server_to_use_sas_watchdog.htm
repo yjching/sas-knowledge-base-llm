@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>Configuring SAS Compute Server to Use SAS Watchdog</title>
+    </head>
+    <body>
+        <h1 id="140342938568208configuring-sas-compute-server-to-use-sas-watchdog">Configuring SAS Compute Server to Use SAS Watchdog</h1>
+<h2 id="140342938568208overview">Overview</h2>
+<p>The SAS Compute server provides the ability to execute SAS Watchdog, which
+monitors spawned processes to ensure that they comply with the terms of LOCKDOWN system option.</p>
+<p>The LOCKDOWN system option employs an allow list in the SAS Compute server.  Only files
+that reside in paths or folders that are included in the allow list can be accessed by the SAS
+Compute server.  The limitation on the LOCKDOWN system option is that it can only block access
+to files and folders directly accessed by SAS Compute server processing.  The SAS Watchdog facility
+extends this checking to files and folders that are used by languages that are invoked by
+the SAS Compute server.   Therefore, code written in Python, R, or Java that is executed directly
+in the SAS Compute server process is checked against the allow list. 
+The configuration of the SAS Watchdog facility replicates the allow list that
+is configured by the LOCKDOWN system option by default.  </p>
+<p><strong>Note:</strong> For more information about the LOCKDOWN system option, see <a href="https://go.documentation.sas.com/doc/en/sasadmincdc/default/calsrvpgm/p04d9diqt9cjqnn1auxc3yl1ifef.htm#p0sshm6ekdjiafn1jm5o0as6dsdr">LOCKDOWN System Option</a></p>
+<p>The SAS Watchdog facility is disabled by default.  This README file describes how to
+customize your SAS Viya platform deployment to allow SAS Compute server to run SAS Watchdog.</p>
+<h2 id="140342938568208installation">Installation</h2>
+<p>Enable the ability for the pod where the SAS Compute
+Server is running to run SAS Watchdog. SAS Watchdog starts when the SAS
+Compute server is started, and exists for the life of
+the SAS Compute server.</p>
+<h3 id="140342938568208enable-sas-watchdog-in-the-sas-compute-server">Enable SAS Watchdog in the SAS Compute Server</h3>
+<p>SAS has provided an overlay to enable SAS Watchdog in your environment.</p>
+<p>To use the overlay:</p>
+<ol>
+<li>
+<p>Add a reference to the <code>sas-programming-environment/watchdog</code> overlay to the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<p>Here is an example:</p>
+<pre class="highlight"><code class="language-yaml">...
+transformers:
+...
+- sas-bases/overlays/sas-programming-environment/watchdog
+- sas-bases/overlays/required/transformers.yaml
+...</code></pre>
+
+<p><strong>NOTE:</strong> The reference to the <code>sas-programming-environment/watchdog</code> overlay <strong>MUST</strong> come before the required transformers.yaml, as seen in the example above.</p>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h3 id="140342938568208disabling-sas-watchdog-in-the-sas-compute-server">Disabling SAS Watchdog in the SAS Compute Server</h3>
+<p>To disable SAS Watchdog:</p>
+<ol>
+<li>
+<p>Remove <code>sas-bases/overlays/sas-programming-environment/watchdog</code>
+from the transformers block of the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+</li>
+<li>
+<p>Deploy the software using the commands in
+<a href="http://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=titlepage.htm">SAS Viya Platform: Deployment Guide</a>.</p>
+</li>
+</ol>
+<h2 id="140342938568208additional-instructions-for-an-openshift-environment">Additional Instructions for an OpenShift Environment</h2>
+<h3 id="140342938568208apply-security-context-constraint-scc">Apply Security Context Constraint (SCC)</h3>
+<p>As a Kubernetes cluster administrator of the OpenShift cluster, use one of the following commands to apply the Security Context Constraint. An example of the yaml may be found in <code>sas-bases/examples/sas-programming-environment/watchdog/sas-watchdog-scc.yaml</code>.</p>
+<pre class="highlight"><code class="language-console">kubectl apply -f sas-watchdog-scc.yaml</code></pre>
+
+<pre class="highlight"><code class="language-console">oc apply -f sas-watchdog-scc.yaml</code></pre>
+
+<h3 id="140342938568208grant-the-service-account-use-of-the-scc">Grant the Service Account Use of the SCC</h3>
+<pre class="highlight"><code class="language-console">oc -n &lt;namespace&gt; adm policy add-scc-to-user sas-watchdog -z sas-programming-environment</code></pre>
+
+<h3 id="140342938568208remove-the-service-account-from-the-scc">Remove the Service Account from the SCC</h3>
+<p>Run the following command to remove the service account from the SCC:</p>
+<pre class="highlight"><code class="language-console">oc -n &lt;namespace&gt; adm policy remove-scc-from-user sas-watchdog -z sas-programming-environment</code></pre>
+
+<h3 id="140342938568208delete-the-scc">Delete the SCC</h3>
+<p>Run one of the following commands to delete the SCC after it has been removed:</p>
+<pre class="highlight"><code class="language-console">kubectl delete scc sas-watchdog</code></pre>
+
+<pre class="highlight"><code class="language-console">oc delete scc sas-watchdog</code></pre>
+
+<p><strong>NOTE:</strong> Do not delete the SCC if there are other SAS Viya platform deployments in the cluster.  Only delete the SCC after all namespaces running SAS Viya platform in the cluster have been removed.</p>
+    </body>
+</html>

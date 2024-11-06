@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="sas.css"/>
+        <title>OpenSearch on Red Hat OpenShift</title>
+    </head>
+    <body>
+        <h1 id="140342937980208opensearch-on-red-hat-openshift">OpenSearch on Red Hat OpenShift</h1>
+<p>Before deploying your SAS Viya platform software, perform the following steps in order to run OpenSearch on OpenShift in that deployment.</p>
+<ul>
+<li>Configure a Security Context Constraints resource to support OpenSearch</li>
+<li>Remove Seccomp Profile property and annotation on OpenSearch Pods</li>
+</ul>
+<h2 id="140342937980208configure-security-context-constraints-for-opensearch">Configure Security Context Constraints for OpenSearch</h2>
+<p>An example Security Context Constraints is available at <code>$deploy/sas-bases/examples/configure-elasticsearch/internal/openshift/sas-opendistro-scc.yaml</code>.
+A Kubernetes cluster administrator must add these Security Context Constraints to their OpenShift cluster before deploying the SAS Viya platform.</p>
+<p>Consult <a href="https://documentation.sas.com/?cdcId=itopscdc&amp;cdcVersion=default&amp;docsetId=dplyml0phy0dkr&amp;docsetTarget=n08u2yg8tdkb4jn18u8zsi6yfv3d.htm#p1hvb150qa9z0pn1i4h5joqv2qmc">Common Customizations</a> 
+for information about the additional transformers, which might require changes to the Security Context Constraints. </p>
+<p>If modifications are required, place a copy of the <code>sas-opendistro-scc.yaml</code> file in the site-config directory and apply the changes to the copy.</p>
+<h3 id="140342937980208modify-sas-opendistro-sccyaml-for-run-user-transformeryaml">Modify sas-opendistro-scc.yaml for run-user-transformer.yaml</h3>
+<p>If you are planning to use <code>run-user-transformer.yaml</code> to specify a custom UID for the OpenSearch processes, update the <code>uid</code> property of the <code>runAsUser</code> option to match the custom UID. For example, if UID 2000 will be configured in the <code>run-user-transformer.yaml</code>, update the file <code>sas-opendistro-scc.yaml</code> as follows.</p>
+<pre class="highlight"><code>runAsUser:
+   type: MustRunAs
+   uid: 2000</code></pre>
+
+<h3 id="140342937980208modify-sas-opendistro-sccyaml-for-sysctl-transformeryaml">Modify sas-opendistro-scc.yaml for sysctl-transformer.yaml</h3>
+<p>If your deployment will use <code>sysctl-transformer.yaml</code> to apply the necessary sysctl parameters, the <code>sas-opendistro-scc.yaml</code> file must be modified. 
+Otherwise, you should skip these steps.</p>
+<ol>
+<li>
+<p>Set the allowPrivilegeEscalation and allowPrivilegedContainer options to <code>true</code>. This allows a privileged init container to execute and apply the necessary sysctl parameters.</p>
+<pre class="highlight"><code>allowPrivilegeEscalation: true
+allowPrivilegedContainer: true</code></pre>
+
+</li>
+<li>
+<p>Update the runAsUser option to <code>RunAsAny</code>, using the following example as your guide. This allows the privileged init container to run as a different user to apply the necessary sysctl parameters.</p>
+<pre class="highlight"><code>runAsUser:
+   type: RunAsAny</code></pre>
+
+</li>
+</ol>
+<h3 id="140342937980208apply-security-context-constraints">Apply Security Context Constraints</h3>
+<p>As a Kubernetes cluster administrator of the OpenShift cluster, use one of the following commands to apply the Security Context Constraints.</p>
+<pre class="highlight"><code>kubectl apply -f sas-opendistro-scc.yaml</code></pre>
+
+<pre class="highlight"><code>oc apply -f sas-opendistro-scc.yaml</code></pre>
+
+<h3 id="140342937980208add-security-context-constraints-to-sas-opendistro-service-account">Add Security Context Constraints to sas-opendistro Service Account</h3>
+<p>The sas-opendistro SecurityContextConstraints must be added to the sas-opendistro ServiceAccount within each target deployment namespace to grant the
+necessary privileges.</p>
+<p>Use the following command to configure the ServiceAccount. Replace the entire variable <code>{{ NAME-OF-NAMESPACE }}</code>, including the braces,
+with the Kubernetes namespace used for the SAS Viya platform.</p>
+<pre class="highlight"><code>oc -n {{ NAME-OF-NAMESPACE }} adm policy add-scc-to-user sas-opendistro -z sas-opendistro</code></pre>
+
+<h2 id="140342937980208remove-seccomp-profile-property-and-annotation-on-opensearch-pods">Remove Seccomp Profile Property and Annotation on OpenSearch Pods</h2>
+<p>An example transformer that removes the seccomp property and annotation from the OpenSearch pods through the OpenDistroCluster resource is available at <code>$deploy/sas-bases/overlays/internal-elasticsearch/remove-seccomp-transformer.yaml</code>.</p>
+<p>To include this transformer, add the following to the base kustomization.yaml file (<code>$deploy/kustomization.yaml</code>).</p>
+<pre><code> ```yaml
+ transformers:
+ ...
+ - sas-bases/overlays/internal-elasticsearch/remove-seccomp-transformer.yaml
+ ```
+</code></pre>
+    </body>
+</html>
